@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0d1117">
+<meta name="description" content="Rutina de gimnasio de 5 días con registro de pesos, repeticiones e historial.">
+<title>Rutina Gym</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<div id="cargando" class="pantalla-carga"><div class="spinner"></div></div>
+
+<!-- ============ AUTENTICACIÓN ============ -->
+<section id="vista-auth" class="vista oculto">
+  <div class="auth-caja">
+    <div class="auth-marca">
+      <svg viewBox="0 0 48 48" class="logo" aria-hidden="true">
+        <path d="M6 20h4v8H6zM38 20h4v8h-4zM12 16h5v16h-5zM31 16h5v16h-5zM17 22h14v4H17z" fill="currentColor"/>
+      </svg>
+      <h1>Rutina Gym</h1>
+      <p class="auth-sub">Tu rutina, tus pesos, tu progreso.</p>
+    </div>
+
+    <div class="tabs" role="tablist">
+      <button class="tab activo" data-modo="entrar" role="tab">Entrar</button>
+      <button class="tab" data-modo="registro" role="tab">Crear cuenta</button>
+    </div>
+
+    <form id="form-auth" novalidate>
+      <label class="campo campo-nombre oculto">
+        <span>Nombre</span>
+        <input type="text" id="in-nombre" autocomplete="name" placeholder="Cómo te llamas">
+      </label>
+      <label class="campo">
+        <span>Correo</span>
+        <input type="email" id="in-correo" autocomplete="email" required placeholder="tu@correo.com">
+      </label>
+      <label class="campo">
+        <span>Contraseña</span>
+        <input type="password" id="in-clave" autocomplete="current-password" required minlength="6" placeholder="Mínimo 6 caracteres">
+      </label>
+      <p id="auth-error" class="error oculto" role="alert"></p>
+      <button type="submit" class="btn-primario" id="btn-auth">Entrar</button>
+    </form>
+    <p class="auth-nota">Cada persona ve únicamente sus propios registros.</p>
+  </div>
+</section>
+
+<!-- ============ INICIO: LOS 5 DÍAS ============ -->
+<section id="vista-inicio" class="vista oculto">
+  <header class="cabecera">
+    <div>
+      <p class="saludo">Hola,</p>
+      <h1 id="nombre-usuario">—</h1>
+    </div>
+    <button id="btn-menu" class="btn-icono" aria-label="Menú">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg>
+    </button>
+  </header>
+
+  <div class="resumen" id="resumen-semana"></div>
+
+  <h2 class="titulo-seccion">Tu rutina</h2>
+  <div id="lista-dias" class="lista-dias"></div>
+
+  <p class="pie-nota">4 series · 15 / 12 / 10 / 8 repeticiones · sube el peso en cada serie</p>
+</section>
+
+<!-- ============ DÍA DE ENTRENAMIENTO ============ -->
+<section id="vista-dia" class="vista oculto">
+  <header class="cabecera cabecera-dia">
+    <button id="btn-volver" class="btn-icono" aria-label="Volver">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+    <div class="cabecera-dia-txt">
+      <p class="etiqueta-dia" id="dia-etiqueta">Día 1</p>
+      <h1 id="dia-titulo">Pecho</h1>
+    </div>
+    <div class="progreso-anillo" id="progreso-dia" aria-hidden="true"></div>
+  </header>
+
+  <div id="lista-bloques" class="lista-bloques"></div>
+
+  <div class="cardio-caja">
+    <div class="cardio-txt">
+      <h3>Cardio</h3>
+      <p>20 a 30 minutos después de las pesas</p>
+    </div>
+    <button id="btn-cardio" class="check-grande" aria-pressed="false" aria-label="Marcar cardio como hecho"></button>
+  </div>
+
+  <div class="espacio-inferior"></div>
+</section>
+
+<!-- ============ TEMPORIZADOR DE DESCANSO ============ -->
+<div id="temporizador" class="temporizador oculto" role="status" aria-live="polite">
+  <button id="temp-menos" class="temp-btn" aria-label="Quitar 15 segundos">−15</button>
+  <div class="temp-centro">
+    <span id="temp-tiempo">01:30</span>
+    <span class="temp-label">descanso</span>
+  </div>
+  <button id="temp-mas" class="temp-btn" aria-label="Agregar 15 segundos">+15</button>
+  <button id="temp-cerrar" class="temp-cerrar" aria-label="Cerrar temporizador">✕</button>
+</div>
+
+<!-- ============ HOJA DE HISTORIAL ============ -->
+<div id="hoja" class="hoja oculto" role="dialog" aria-modal="true" aria-labelledby="hoja-titulo">
+  <div class="hoja-fondo" data-cerrar-hoja></div>
+  <div class="hoja-panel">
+    <div class="hoja-asa"></div>
+    <h2 id="hoja-titulo">Historial</h2>
+    <div id="hoja-cuerpo"></div>
+  </div>
+</div>
+
+<div id="aviso" class="aviso oculto" role="status" aria-live="polite"></div>
+
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
