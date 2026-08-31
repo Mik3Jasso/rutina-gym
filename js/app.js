@@ -147,10 +147,10 @@ $('#form-auth').addEventListener('submit', async (e) => {
         options: { data: { nombre: nombre || correo.split('@')[0] } },
       });
       if (error) throw error;
+      // Las cuentas nacen confirmadas, asi que entramos de una vez.
       if (!data.session) {
-        err.textContent = 'Cuenta creada. Revisa tu correo para confirmarla y luego entra.';
-        err.classList.remove('oculto');
-        return;
+        const { error: errorEntrada } = await sb.auth.signInWithPassword({ email: correo, password: clave });
+        if (errorEntrada) throw errorEntrada;
       }
     } else {
       const { error } = await sb.auth.signInWithPassword({ email: correo, password: clave });
@@ -160,8 +160,9 @@ $('#form-auth').addEventListener('submit', async (e) => {
     const m = (ex.message || '').toLowerCase();
     err.textContent =
       m.includes('invalid login') ? 'Correo o contraseña incorrectos.'
+      : m.includes('not confirmed') ? 'Esa cuenta quedó a medias. Avísale a Mike para reactivarla.'
       : m.includes('already registered') || m.includes('already been registered') ? 'Ese correo ya tiene cuenta. Entra con tu contraseña.'
-      : m.includes('rate') ? 'Demasiados intentos seguidos. Espera un momento.'
+      : m.includes('rate') ? 'Demasiados intentos seguidos. Espera unos minutos e intenta otra vez.'
       : ex.message || 'No se pudo completar. Intenta de nuevo.';
     err.classList.remove('oculto');
   } finally {
