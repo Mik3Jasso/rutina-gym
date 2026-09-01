@@ -13,7 +13,7 @@ const sb = createClient(SUPABASE_URL, SUPABASE_KEY, {
 });
 
 const $ = (s) => document.querySelector(s);
-const CLAVE_PENDIENTES = 'rutina:pendientes';
+const CLAVE_BORRADOR = 'rutina:borrador';
 
 const estado = {
   usuario: null,
@@ -78,30 +78,49 @@ function mostrarVista(id) {
 // ============================================================
 //  Cola de guardado sin conexión
 // ============================================================
-const leerPendientes = () => {
-  try { return JSON.parse(localStorage.getItem(CLAVE_PENDIENTES) || '[]'); }
-  catch { return []; }
+//  Lo que escribes queda en el telefono hasta que lo guardas con la
+//  palomita. Asi nada se pierde si cierras la app a medias.
+const leerTodo = () => {
+  try { return JSON.parse(localStorage.getItem(CLAVE_BORRADOR) || '{}'); }
+  catch { return {}; }
 };
-const escribirPendientes = (arr) => {
-  try { localStorage.setItem(CLAVE_PENDIENTES, JSON.stringify(arr)); } catch {}
+const escribirTodo = (obj) => {
+  try { localStorage.setItem(CLAVE_BORRADOR, JSON.stringify(obj)); } catch {}
 };
 
-function encolar(fila) {
-  const cola = leerPendientes().filter(
-    (f) => !(f.sesion_id === fila.sesion_id && f.ejercicio_slug === fila.ejercicio_slug && f.serie === fila.serie)
-  );
-  cola.push(fila);
-  escribirPendientes(cola);
+const claveDia = () => `${estado.dia?.dia}:${hoy()}`;
+
+function anotarBorrador(clave, datos) {
+  const todo = leerTodo();
+  (todo[claveDia()] ||= {})[clave] = datos;
+  escribirTodo(todo);
 }
 
-async function vaciarCola() {
-  const cola = leerPendientes();
-  if (!cola.length || !estado.usuario) return;
-  const { error } = await sb.from('series_log').upsert(cola, { onConflict: 'sesion_id,ejercicio_slug,serie' });
-  if (!error) {
-    escribirPendientes([]);
-    avisar('Registros pendientes guardados');
-  }
+function limpiarBorrador(clave) {
+  const todo = leerTodo();
+  const grupo = todo[claveDia()];
+  if (!grupo) return;
+  delete grupo[clave];
+  if (!Object.keys(grupo).length) delete todo[claveDia()];
+  escribirTodo(todo);
+}
+
+const cargarBorrador = () => leerTodo()[claveDia()] || {};
+
+// ------------------------------------------------------------
+//  Aviso de fallo al guardar: no desaparece solo, y ofrece reintentar
+// ------------------------------------------------------------
+let reintento = null;
+
+function mostrarFallo(accion, texto) {
+  reintento = accion;
+  $('#fallo-texto').textContent = texto || 'Revisa tu conexión. Lo que escribiste sigue aquí.';
+  $('#fallo').classList.remove('oculto');
+}
+
+function ocultarFallo() {
+  reintento = null;
+  $('#fallo').classList.add('oculto');
 }
 
 // ============================================================
@@ -279,10 +298,19 @@ async function abrirDia(numDia) {
     estado.anteriores[`${p.ejercicio_slug}:${p.serie}`] = p;
   });
 
+  // Recuperar lo escrito pero no guardado en este telefono
+  const borrador = cargarBorrador();
+  Object.entries(borrador).forEach(([clave, v]) => {
+    estado.registros[clave] = { peso: v.peso, reps: v.reps, hecho: false };
+  });
+
   pintarBloques();
+  Object.keys(borrador).forEach((clave) => marcarPendiente(clave, true));
+  if (Object.keys(borrador).length) {
+    avisar('Tienes series escritas sin guardar', true);
+  }
   actualizarProgreso();
   $('#btn-cardio').setAttribute('aria-pressed', String(estado.cardio));
-  vaciarCola();
 }
 
 function pintarBloques() {
@@ -307,7 +335,7 @@ function tarjetaEjercicio(slug) {
     const r = estado.registros[`${slug}:${n}`] || {};
     const ant = estado.anteriores[`${slug}:${n}`];
     return `
-      <tr>
+      <tr data-fila="${slug}:${n}">
         <td class="serie-reps">${reps}</td>
         <td class="celda-in">
           <input class="in-num" type="number" inputmode="decimal" step="0.5" min="0"
@@ -377,10 +405,7 @@ $('#lista-bloques').addEventListener('click', (e) => {
   }
   const chk = e.target.closest('.check');
   if (chk) {
-    const pulsado = chk.getAttribute('aria-pressed') === 'true';
-    chk.setAttribute('aria-pressed', String(!pulsado));
-    guardarCelda(chk.dataset.slug, Number(chk.dataset.serie), 'hecho', !pulsado);
-    if (!pulsado) iniciarTemporizador(90);
+    guardarSerie(chk.dataset.slug, Number(chk.dataset.serie), chk);
     return;
   }
   const hist = e.target.closest('[data-historial]');
@@ -390,12 +415,24 @@ $('#lista-bloques').addEventListener('click', (e) => {
   if (desc) { iniciarTemporizador(Number(desc.dataset.descanso)); return; }
 });
 
-$('#lista-bloques').addEventListener('change', (e) => {
+// Escribir no toca la red: solo actualiza el borrador local y marca
+// la fila como pendiente de guardar.
+$('#lista-bloques').addEventListener('input', (e) => {
   const inp = e.target.closest('.in-num');
   if (!inp) return;
   const valor = inp.value === '' ? null : Number(inp.value);
-  if (valor !== null && (Number.isNaN(valor) || valor < 0)) { inp.value = ''; return; }
-  guardarCelda(inp.dataset.slug, Number(inp.dataset.serie), inp.dataset.campo, valor);
+  if (valor !== null && (Number.isNaN(valor) || valor < 0)) return;
+
+  const clave = `${inp.dataset.slug}:${inp.dataset.serie}`;
+  const actual = estado.registros[clave] || { peso: null, reps: null, hecho: false };
+  actual[inp.dataset.campo] = valor;
+  actual.hecho = false;
+  estado.registros[clave] = actual;
+
+  anotarBorrador(clave, { peso: actual.peso, reps: actual.reps });
+  marcarPendiente(clave, actual.peso !== null || actual.reps !== null);
+  actualizarPastilla(inp.dataset.slug);
+  actualizarProgreso();
 });
 
 $('#btn-volver').addEventListener('click', () => {
@@ -404,59 +441,118 @@ $('#btn-volver').addEventListener('click', () => {
 });
 
 $('#btn-cardio').addEventListener('click', async () => {
-  estado.cardio = !estado.cardio;
-  $('#btn-cardio').setAttribute('aria-pressed', String(estado.cardio));
-  const id = await asegurarSesion();
-  if (id) await sb.from('sesiones').update({ cardio_hecho: estado.cardio }).eq('id', id);
+  const nuevo = !estado.cardio;
+  $('#btn-cardio').setAttribute('aria-pressed', String(nuevo));
+  try {
+    const id = await asegurarSesion();
+    const { error } = await sb.from('sesiones').update({ cardio_hecho: nuevo }).eq('id', id);
+    if (error) throw error;
+    estado.cardio = nuevo;
+    ocultarFallo();
+  } catch {
+    $('#btn-cardio').setAttribute('aria-pressed', String(estado.cardio));
+    mostrarFallo(null, 'No se pudo guardar el cardio. Revisa tu conexión.');
+  }
 });
+
+$('#fallo-reintentar').addEventListener('click', () => {
+  const accion = reintento;
+  ocultarFallo();
+  if (accion) accion();
+});
+$('#fallo-cerrar').addEventListener('click', ocultarFallo);
 
 // ============================================================
 //  Guardado
 // ============================================================
+// Una sola creacion en vuelo a la vez: dos guardados simultaneos
+// compartian la misma promesa en lugar de crear sesiones duplicadas.
+let sesionEnCurso = null;
+
 async function asegurarSesion() {
   if (estado.sesionId) return estado.sesionId;
-  const { data, error } = await sb
-    .from('sesiones')
-    .insert({ user_id: estado.usuario.id, dia: estado.dia.dia, fecha: hoy() })
-    .select('id')
-    .single();
-  if (error) {
-    // otra pestaña la pudo crear primero
-    const { data: ex } = await sb.from('sesiones').select('id')
-      .eq('dia', estado.dia.dia).eq('fecha', hoy()).maybeSingle();
-    if (ex) { estado.sesionId = ex.id; return ex.id; }
-    avisar('No se pudo iniciar la sesión', true);
-    return null;
-  }
-  estado.sesionId = data.id;
-  return data.id;
+  if (sesionEnCurso) return sesionEnCurso;
+
+  sesionEnCurso = (async () => {
+    const { data, error } = await sb
+      .from('sesiones')
+      .upsert(
+        { user_id: estado.usuario.id, dia: estado.dia.dia, fecha: hoy() },
+        { onConflict: 'user_id,dia,fecha' }
+      )
+      .select('id')
+      .single();
+    if (error) throw error;
+    estado.sesionId = data.id;
+    return data.id;
+  })();
+
+  try { return await sesionEnCurso; }
+  finally { sesionEnCurso = null; }
 }
 
-async function guardarCelda(slug, serie, campo, valor) {
+function marcarPendiente(clave, pendiente) {
+  const tr = document.querySelector(`tr[data-fila="${clave}"]`);
+  if (!tr) return;
+  tr.classList.toggle('pendiente', !!pendiente);
+  if (pendiente) tr.querySelector('.check').setAttribute('aria-pressed', 'false');
+}
+
+// La palomita es el boton de guardar: toma el peso y las reps de su
+// fila, los sube, y solo entonces se pone verde.
+async function guardarSerie(slug, serie, btn) {
+  if (btn.classList.contains('guardando')) return;
+
   const clave = `${slug}:${serie}`;
-  const actual = estado.registros[clave] || { peso: null, reps: null, hecho: false };
-  actual[campo] = valor;
-  estado.registros[clave] = actual;
-  actualizarPastilla(slug);
-  actualizarProgreso();
+  const tr = btn.closest('tr');
+  const inPeso = tr.querySelector('[data-campo="peso"]');
+  const inReps = tr.querySelector('[data-campo="reps"]');
+  const peso = inPeso.value === '' ? null : Number(inPeso.value);
+  const reps = inReps.value === '' ? null : Number(inReps.value);
+  const marcar = btn.getAttribute('aria-pressed') !== 'true';
 
-  const sesionId = await asegurarSesion();
-  if (!sesionId) return;
+  if (marcar && peso === null && reps === null) {
+    tr.classList.add('falta');
+    setTimeout(() => tr.classList.remove('falta'), 1400);
+    avisar('Escribe el peso o las repeticiones antes de marcar', true);
+    return;
+  }
 
-  const fila = {
-    user_id: estado.usuario.id,
-    sesion_id: sesionId,
-    ejercicio_slug: slug,
-    serie,
-    peso: actual.peso,
-    reps: actual.reps,
-    hecho: !!actual.hecho,
-  };
+  btn.classList.add('guardando');
+  btn.disabled = true;
+  ocultarFallo();
 
-  const { error } = await sb.from('series_log').upsert(fila, { onConflict: 'sesion_id,ejercicio_slug,serie' });
-  if (error) {
-    encolar(fila);
-    avisar('Sin conexión: guardado en el teléfono', true);
+  try {
+    const sesionId = await asegurarSesion();
+    const { error } = await sb.from('series_log').upsert(
+      {
+        user_id: estado.usuario.id,
+        sesion_id: sesionId,
+        ejercicio_slug: slug,
+        serie,
+        peso,
+        reps,
+        hecho: marcar,
+      },
+      { onConflict: 'sesion_id,ejercicio_slug,serie' }
+    );
+    if (error) throw error;
+
+    estado.registros[clave] = { peso, reps, hecho: marcar };
+    btn.setAttribute('aria-pressed', String(marcar));
+    tr.classList.remove('pendiente');
+    limpiarBorrador(clave);
+    actualizarPastilla(slug);
+    actualizarProgreso();
+    if (marcar) iniciarTemporizador(90);
+  } catch {
+    btn.setAttribute('aria-pressed', 'false');
+    tr.classList.add('pendiente');
+    anotarBorrador(clave, { peso, reps });
+    mostrarFallo(() => guardarSerie(slug, serie, btn));
+  } finally {
+    btn.classList.remove('guardando');
+    btn.disabled = false;
   }
 }
 
@@ -577,7 +673,7 @@ $('#temp-cerrar').addEventListener('click', () => {
   $('#temporizador').classList.add('oculto');
 });
 
-window.addEventListener('online', vaciarCola);
+window.addEventListener('online', () => avisar('Conexión restablecida'));
 
 // ============================================================
 //  Arranque
@@ -593,7 +689,6 @@ async function arrancar() {
   estado.nombre = perfil?.nombre || session.user.email.split('@')[0];
 
   await cargarInicio();
-  vaciarCola();
 }
 
 sb.auth.onAuthStateChange((evento) => {

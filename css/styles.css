@@ -396,3 +396,69 @@ input{font-family:inherit}
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation-duration:.01ms !important;transition-duration:.01ms !important}
 }
+
+/* ============ ESTADOS DE GUARDADO ============ */
+
+/* Fila con datos escritos que todavía no se suben */
+.tabla-series tr.pendiente .in-num{
+  border-color:rgba(255,180,60,.55);
+  background:rgba(255,180,60,.07);
+}
+.tabla-series tr.pendiente .check{
+  border-color:rgba(255,180,60,.55);
+  border-style:dashed;
+}
+
+/* Falta escribir peso o reps antes de marcar */
+@keyframes sacudir{
+  0%,100%{transform:translateX(0)}
+  25%{transform:translateX(-5px)}
+  75%{transform:translateX(5px)}
+}
+.tabla-series tr.falta .in-num{
+  border-color:var(--peligro);
+  animation:sacudir .3s ease 2;
+}
+
+/* Palomita en proceso de guardar */
+.check.guardando{
+  background:var(--surface-2);
+  border-color:var(--acento);
+}
+.check.guardando svg{display:none}
+.check.guardando::after{
+  content:"";
+  width:15px;height:15px;border-radius:50%;
+  border:2px solid rgba(255,255,255,.18);
+  border-top-color:var(--acento);
+  animation:girar .6s linear infinite;
+}
+.check:disabled{cursor:progress}
+
+/* Aviso persistente cuando el guardado falla */
+.fallo{
+  position:fixed;left:12px;right:12px;
+  bottom:calc(var(--safe-b) + 12px);z-index:160;
+  max-width:596px;margin:0 auto;
+  display:flex;align-items:center;gap:11px;
+  background:#2a1416;border:1px solid rgba(255,77,77,.45);
+  border-radius:14px;padding:13px 14px;
+  box-shadow:var(--sombra);
+  animation:asomar .25s cubic-bezier(.2,.9,.3,1.2);
+}
+@keyframes asomar{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+.fallo-icono{width:22px;height:22px;flex:none;color:var(--peligro)}
+.fallo-txt{flex:1;min-width:0;line-height:1.35}
+.fallo-txt b{display:block;font-size:14px;color:#ffd0d0}
+.fallo-txt span{font-size:12.5px;color:#e0a5a5}
+.fallo-btn{
+  flex:none;padding:9px 13px;border-radius:10px;
+  background:var(--peligro);color:#2a0808;
+  font-size:13px;font-weight:700;
+}
+.fallo-btn:active{transform:scale(.96)}
+.fallo-cerrar{
+  flex:none;width:26px;height:26px;border-radius:8px;
+  color:#e0a5a5;font-size:13px;
+}
+.fallo-cerrar:hover{background:rgba(255,255,255,.07)}

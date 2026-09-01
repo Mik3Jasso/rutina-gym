@@ -124,6 +124,20 @@
 
 <div id="aviso" class="aviso oculto" role="status" aria-live="polite"></div>
 
+<!-- ============ FALLO AL GUARDAR ============ -->
+<div id="fallo" class="fallo oculto" role="alert">
+  <svg class="fallo-icono" viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M12 8v5M12 17h.01M10.3 3.9L2.4 18a2 2 0 001.7 3h15.8a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"
+          fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>
+  <div class="fallo-txt">
+    <b>No se pudo guardar</b>
+    <span id="fallo-texto"></span>
+  </div>
+  <button id="fallo-reintentar" class="fallo-btn">Reintentar</button>
+  <button id="fallo-cerrar" class="fallo-cerrar" aria-label="Cerrar aviso">✕</button>
+</div>
+
 <script type="module" src="js/app.js"></script>
 </body>
 </html>
