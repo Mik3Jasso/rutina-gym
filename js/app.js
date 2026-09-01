@@ -13,6 +13,28 @@ const sb = createClient(SUPABASE_URL, SUPABASE_KEY, {
 });
 
 const $ = (s) => document.querySelector(s);
+
+// El día abierto queda en la URL y en la sesión del navegador: si el
+// teléfono descarta la página al cambiar de app, volvemos donde estabas.
+const CLAVE_UBICACION = 'rutina:dia';
+
+function recordarUbicacion(numDia) {
+  try {
+    if (numDia) sessionStorage.setItem(CLAVE_UBICACION, String(numDia));
+    else sessionStorage.removeItem(CLAVE_UBICACION);
+  } catch {}
+  try {
+    history.replaceState(null, '', numDia ? `#dia${numDia}` : location.pathname);
+  } catch {}
+}
+
+function ubicacionGuardada() {
+  const deLaUrl = (location.hash.match(/^#dia([1-5])$/) || [])[1];
+  let deLaSesion = null;
+  try { deLaSesion = sessionStorage.getItem(CLAVE_UBICACION); } catch {}
+  const n = Number(deLaUrl || deLaSesion);
+  return n >= 1 && n <= 5 ? n : null;
+}
 const CLAVE_BORRADOR = 'rutina:borrador';
 
 const estado = {
@@ -257,6 +279,7 @@ async function cargarInicio() {
     b.addEventListener('click', () => abrirDia(Number(b.dataset.dia)));
   });
 
+  recordarUbicacion(null);
   mostrarVista('#vista-inicio');
 }
 
@@ -274,6 +297,7 @@ async function abrirDia(numDia) {
   $('#dia-etiqueta').textContent = `Día ${dia.dia}`;
   $('#dia-titulo').textContent = dia.nombre;
   document.documentElement.style.setProperty('--acento', dia.tono);
+  recordarUbicacion(dia.dia);
   mostrarVista('#vista-dia');
   pintarBloques();
 
@@ -881,12 +905,25 @@ async function arrancar() {
   const { data: perfil } = await sb.from('profiles').select('nombre').eq('id', session.user.id).maybeSingle();
   estado.nombre = perfil?.nombre || session.user.email.split('@')[0];
 
+  // Leerlo ANTES: cargarInicio() borra la ubicación al mostrar el inicio.
+  const dondeEstaba = ubicacionGuardada();
   await cargarInicio();
+  if (dondeEstaba) await abrirDia(dondeEstaba);
 }
 
-sb.auth.onAuthStateChange((evento) => {
-  if (evento === 'SIGNED_IN') arrancar();
-  if (evento === 'SIGNED_OUT') mostrarVista('#vista-auth');
+sb.auth.onAuthStateChange((evento, sesion) => {
+  if (evento === 'SIGNED_OUT') {
+    estado.usuario = null;
+    mostrarVista('#vista-auth');
+    return;
+  }
+  // Al volver de otra app, Supabase revalida la sesión y vuelve a emitir
+  // SIGNED_IN. Arrancar de nuevo aquí te sacaba del día que estabas
+  // haciendo y te devolvía al inicio, así que sólo arrancamos la primera vez.
+  if (evento === 'SIGNED_IN') {
+    if (!estado.usuario) arrancar();
+    else if (sesion?.user) estado.usuario = sesion.user;
+  }
 });
 
 arrancar();
