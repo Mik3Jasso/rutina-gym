@@ -462,3 +462,59 @@ input{font-family:inherit}
   color:#e0a5a5;font-size:13px;
 }
 .fallo-cerrar:hover{background:rgba(255,255,255,.07)}
+
+/* ============ FINALIZAR RUTINA ============ */
+.btn-finalizar{
+  width:100%;margin-top:18px;padding:15px;
+  background:var(--acento);color:#1a0d06;
+  font-weight:700;font-size:16px;border-radius:14px;
+  transition:filter .15s,transform .08s;
+}
+.btn-finalizar:active{transform:scale(.985)}
+.btn-finalizar:hover:not(:disabled){filter:brightness(1.07)}
+.btn-finalizar:disabled{opacity:.5}
+.finalizar-nota{
+  text-align:center;color:var(--muted);font-size:12.5px;margin:9px 0 0;
+}
+.finalizada{
+  display:flex;align-items:center;gap:12px;margin-top:18px;
+  background:var(--ok-suave);border:1px solid rgba(61,220,132,.35);
+  border-radius:var(--radio);padding:14px 15px;
+}
+.finalizada svg{width:22px;height:22px;flex:none;color:var(--ok)}
+.finalizada-txt{flex:1;min-width:0;line-height:1.35}
+.finalizada-txt b{display:block;font-size:15px}
+.finalizada-txt span{font-size:12.5px;color:var(--muted)}
+
+/* Resumen del entrenamiento */
+.resumen-cifras{
+  display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;
+}
+.resumen-cifra{
+  background:var(--surface-2);border-radius:12px;padding:13px 14px;
+}
+.resumen-cifra b{
+  display:block;font-family:"Barlow Condensed",Inter,sans-serif;
+  font-size:26px;line-height:1;margin-bottom:3px;
+}
+.resumen-cifra span{
+  font-size:11px;color:var(--muted);text-transform:uppercase;
+  letter-spacing:.05em;font-weight:600;
+}
+.resumen-detalle{
+  font-size:13.5px;color:var(--muted);line-height:1.6;margin:0 0 16px;
+}
+.resumen-lista{
+  list-style:none;padding:0;margin:0 0 16px;
+}
+.resumen-lista li{
+  display:flex;justify-content:space-between;gap:12px;
+  padding:9px 0;border-bottom:1px solid var(--borde);font-size:13.5px;
+}
+.resumen-lista li:last-child{border-bottom:none}
+.resumen-lista span{color:var(--muted);font-variant-numeric:tabular-nums}
+.insignia-fin{
+  background:var(--ok);color:#06240f;font-size:10px;font-weight:800;
+  padding:2px 7px;border-radius:20px;text-transform:uppercase;
+  letter-spacing:.05em;margin-left:6px;vertical-align:2px;
+}

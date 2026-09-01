@@ -20,9 +20,12 @@ const estado = {
   nombre: '',
   dia: null,        // día abierto
   sesionId: null,
-  registros: {},    // "slug:serie" -> {peso, reps, hecho}
+  registros: {},    // "slug:serie" -> {peso, reps, hecho} (lo que se ve)
+  guardados: {},    // "slug:serie" -> lo que el servidor tiene confirmado
   anteriores: {},   // "slug:serie" -> {peso, reps, fecha}
   cardio: false,
+  finalizada: null,  // marca de tiempo de cierre, o null si sigue abierta
+  inicioSesion: null,
   ultimasFechas: {},// dia -> fecha del último entrenamiento
 };
 
@@ -203,13 +206,17 @@ $('#btn-menu').addEventListener('click', async () => {
 async function cargarInicio() {
   const { data } = await sb
     .from('sesiones')
-    .select('dia, fecha')
+    .select('dia, fecha, finalizada_at')
     .order('fecha', { ascending: false });
 
   estado.ultimasFechas = {};
+  const cerradas = {};
   const fechas = new Set();
   (data || []).forEach((s) => {
-    if (!estado.ultimasFechas[s.dia]) estado.ultimasFechas[s.dia] = s.fecha;
+    if (!estado.ultimasFechas[s.dia]) {
+      estado.ultimasFechas[s.dia] = s.fecha;
+      cerradas[s.dia] = !!s.finalizada_at;
+    }
     fechas.add(s.fecha);
   });
 
@@ -227,6 +234,7 @@ async function cargarInicio() {
   $('#lista-dias').innerHTML = DIAS.map((d) => {
     const fecha = estado.ultimasFechas[d.dia];
     const esHoy = fecha && diasDesde(fecha) === 0;
+    const terminadoHoy = esHoy && cerradas[d.dia];
     const sub = d.listo
       ? `${d.bloques.length * 2} ejercicios · ${relativo(fecha)}`
       : d.vista;
@@ -234,7 +242,9 @@ async function cargarInicio() {
       <button class="tarjeta-dia" data-dia="${d.dia}" ${d.listo ? '' : 'disabled style="opacity:.5"'}>
         <span class="dia-num" style="--tono:${d.tono};--tono-suave:${d.tono}22">${d.dia}</span>
         <span class="dia-info">
-          <h3>${d.nombre}${esHoy ? '<span class="insignia-hoy">hoy</span>' : ''}</h3>
+          <h3>${d.nombre}${terminadoHoy
+            ? '<span class="insignia-fin">terminado</span>'
+            : esHoy ? '<span class="insignia-hoy">hoy</span>' : ''}</h3>
           <p>${sub}</p>
         </span>
         <span class="dia-flecha">${d.listo
@@ -258,6 +268,7 @@ async function abrirDia(numDia) {
   if (!dia || !dia.listo) return;
   estado.dia = dia;
   estado.registros = {};
+  estado.guardados = {};
   estado.anteriores = {};
 
   $('#dia-etiqueta').textContent = `Día ${dia.dia}`;
@@ -270,23 +281,30 @@ async function abrirDia(numDia) {
   const slugs = dia.bloques.flat();
   const { data: ses } = await sb
     .from('sesiones')
-    .select('id, cardio_hecho')
+    .select('id, cardio_hecho, finalizada_at, created_at')
     .eq('dia', dia.dia).eq('fecha', hoy())
     .maybeSingle();
 
   if (ses) {
     estado.sesionId = ses.id;
     estado.cardio = ses.cardio_hecho;
+    estado.finalizada = ses.finalizada_at;
+    estado.inicioSesion = ses.created_at;
     const { data: logs } = await sb
       .from('series_log')
       .select('ejercicio_slug, serie, peso, reps, hecho')
       .eq('sesion_id', ses.id);
     (logs || []).forEach((l) => {
-      estado.registros[`${l.ejercicio_slug}:${l.serie}`] = { peso: l.peso, reps: l.reps, hecho: l.hecho };
+      const clave = `${l.ejercicio_slug}:${l.serie}`;
+      const fila = { peso: l.peso, reps: l.reps, hecho: l.hecho };
+      estado.registros[clave] = fila;
+      estado.guardados[clave] = { ...fila };
     });
   } else {
     estado.sesionId = null;
     estado.cardio = false;
+    estado.finalizada = null;
+    estado.inicioSesion = null;
   }
 
   // pesos de la última vez, para referencia
@@ -310,6 +328,7 @@ async function abrirDia(numDia) {
     avisar('Tienes series escritas sin guardar', true);
   }
   actualizarProgreso();
+  pintarFinalizacion();
   $('#btn-cardio').setAttribute('aria-pressed', String(estado.cardio));
 }
 
@@ -426,13 +445,28 @@ $('#lista-bloques').addEventListener('input', (e) => {
   const clave = `${inp.dataset.slug}:${inp.dataset.serie}`;
   const actual = estado.registros[clave] || { peso: null, reps: null, hecho: false };
   actual[inp.dataset.campo] = valor;
-  actual.hecho = false;
   estado.registros[clave] = actual;
 
-  anotarBorrador(clave, { peso: actual.peso, reps: actual.reps });
-  marcarPendiente(clave, actual.peso !== null || actual.reps !== null);
+  const guardado = estado.guardados[clave];
+  const coincide = !!guardado && guardado.hecho
+    && guardado.peso === actual.peso && guardado.reps === actual.reps;
+
+  actual.hecho = coincide;
+
+  if (coincide) {
+    // Volvio exactamente al valor guardado: no hay nada que subir.
+    limpiarBorrador(clave);
+    marcarGuardada(clave);
+  } else {
+    const hayAlgo = actual.peso !== null || actual.reps !== null;
+    if (hayAlgo || guardado) anotarBorrador(clave, { peso: actual.peso, reps: actual.reps });
+    else limpiarBorrador(clave);
+    marcarPendiente(clave, hayAlgo || !!guardado);
+  }
+
   actualizarPastilla(inp.dataset.slug);
   actualizarProgreso();
+  pintarFinalizacion();
 });
 
 $('#btn-volver').addEventListener('click', () => {
@@ -495,7 +529,15 @@ function marcarPendiente(clave, pendiente) {
   const tr = document.querySelector(`tr[data-fila="${clave}"]`);
   if (!tr) return;
   tr.classList.toggle('pendiente', !!pendiente);
-  if (pendiente) tr.querySelector('.check').setAttribute('aria-pressed', 'false');
+  // Editar siempre desmarca: lo que se ve ya no es lo que esta guardado.
+  tr.querySelector('.check').setAttribute('aria-pressed', 'false');
+}
+
+function marcarGuardada(clave) {
+  const tr = document.querySelector(`tr[data-fila="${clave}"]`);
+  if (!tr) return;
+  tr.classList.remove('pendiente');
+  tr.querySelector('.check').setAttribute('aria-pressed', 'true');
 }
 
 // La palomita es el boton de guardar: toma el peso y las reps de su
@@ -518,6 +560,7 @@ async function guardarSerie(slug, serie, btn) {
     return;
   }
 
+  tr.classList.remove('falta');
   btn.classList.add('guardando');
   btn.disabled = true;
   ocultarFallo();
@@ -539,11 +582,13 @@ async function guardarSerie(slug, serie, btn) {
     if (error) throw error;
 
     estado.registros[clave] = { peso, reps, hecho: marcar };
+    estado.guardados[clave] = { peso, reps, hecho: marcar };
     btn.setAttribute('aria-pressed', String(marcar));
     tr.classList.remove('pendiente');
     limpiarBorrador(clave);
     actualizarPastilla(slug);
     actualizarProgreso();
+    pintarFinalizacion();
     if (marcar) iniciarTemporizador(90);
   } catch {
     btn.setAttribute('aria-pressed', 'false');
@@ -576,6 +621,154 @@ function actualizarProgreso() {
   anillo.style.setProperty('--pct', pct + '%');
   anillo.innerHTML = `<span>${pct}%</span>`;
 }
+
+// ============================================================
+//  Finalizar la rutina del día
+// ============================================================
+const seriesPendientes = () =>
+  [...document.querySelectorAll('#lista-bloques tr.pendiente')];
+
+function pintarFinalizacion() {
+  const cerrada = !!estado.finalizada;
+  $('#btn-finalizar').classList.toggle('oculto', cerrada);
+  $('#finalizar-nota').classList.toggle('oculto', cerrada);
+  $('#ya-finalizada').classList.toggle('oculto', !cerrada);
+
+  if (cerrada) {
+    const h = new Date(estado.finalizada);
+    $('#finalizada-hora').textContent =
+      'Cerraste este entrenamiento a las ' +
+      h.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
+    return;
+  }
+
+  const pend = seriesPendientes().length;
+  const marcadas = contarMarcadas();
+  $('#finalizar-nota').textContent = pend
+    ? `${pend} ${pend === 1 ? 'serie escrita sin guardar' : 'series escritas sin guardar'}`
+    : marcadas
+      ? `${marcadas} ${marcadas === 1 ? 'serie guardada' : 'series guardadas'}`
+      : 'Todavía no has guardado ninguna serie';
+}
+
+function contarMarcadas() {
+  if (!estado.dia) return 0;
+  return estado.dia.bloques.flat().reduce(
+    (n, s) => n + SERIES.filter((_, i) => estado.registros[`${s}:${i + 1}`]?.hecho).length, 0);
+}
+
+// Sube en orden todas las series en ámbar. Devuelve cuántas fallaron.
+async function guardarTodasPendientes() {
+  let fallos = 0;
+  for (const tr of seriesPendientes()) {
+    const btn = tr.querySelector('.check');
+    await guardarSerie(btn.dataset.slug, Number(btn.dataset.serie), btn);
+    if (tr.classList.contains('pendiente')) fallos++;
+  }
+  return fallos;
+}
+
+async function finalizarRutina() {
+  const btn = $('#btn-finalizar');
+  const pend = seriesPendientes().length;
+
+  if (pend) {
+    const guardar = confirm(
+      `Tienes ${pend} ${pend === 1 ? 'serie escrita sin guardar' : 'series escritas sin guardar'}.\n\n` +
+      'Aceptar: guardarlas y finalizar.\nCancelar: volver sin finalizar.'
+    );
+    if (!guardar) return;
+    btn.disabled = true;
+    btn.textContent = 'Guardando…';
+    const fallos = await guardarTodasPendientes();
+    btn.disabled = false;
+    btn.textContent = 'Finalizar rutina';
+    if (fallos) {
+      mostrarFallo(finalizarRutina, `Quedaron ${fallos} series sin guardar. No cerré la rutina.`);
+      return;
+    }
+  }
+
+  if (!contarMarcadas() && !estado.cardio) {
+    avisar('No hay nada que finalizar todavía', true);
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Cerrando…';
+  try {
+    const id = await asegurarSesion();
+    const cierre = new Date().toISOString();
+    const { error } = await sb.from('sesiones').update({ finalizada_at: cierre }).eq('id', id);
+    if (error) throw error;
+    estado.finalizada = cierre;
+    pintarFinalizacion();
+    mostrarResumen();
+  } catch {
+    mostrarFallo(finalizarRutina, 'No se pudo cerrar la rutina. Revisa tu conexión.');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Finalizar rutina';
+  }
+}
+
+function mostrarResumen() {
+  const slugs = estado.dia.bloques.flat();
+  const marcadas = contarMarcadas();
+  const completos = slugs.filter(
+    (s) => SERIES.every((_, i) => estado.registros[`${s}:${i + 1}`]?.hecho)).length;
+
+  let volumen = 0;
+  slugs.forEach((s) => SERIES.forEach((_, i) => {
+    const r = estado.registros[`${s}:${i + 1}`];
+    if (r?.hecho && r.peso && r.reps) volumen += r.peso * r.reps;
+  }));
+
+  let duracion = '';
+  if (estado.inicioSesion && estado.finalizada) {
+    const min = Math.round((new Date(estado.finalizada) - new Date(estado.inicioSesion)) / 60000);
+    if (min > 0) duracion = min >= 60 ? `${Math.floor(min / 60)} h ${min % 60} min` : `${min} min`;
+  }
+
+  const porEjercicio = slugs.map((s) => {
+    const hechas = SERIES.filter((_, i) => estado.registros[`${s}:${i + 1}`]?.hecho).length;
+    const pesos = SERIES.map((_, i) => estado.registros[`${s}:${i + 1}`])
+      .filter((r) => r?.hecho && r.peso != null).map((r) => nDecimal(r.peso));
+    return `<li><span style="color:var(--texto)">${EJERCICIOS[s].nombre}</span>
+      <span>${hechas ? pesos.join(' · ') + ' kg' : '—'}</span></li>`;
+  }).join('');
+
+  $('#hoja-titulo').textContent = 'Entrenamiento terminado';
+  $('#hoja-cuerpo').innerHTML = `
+    <div class="resumen-cifras">
+      <div class="resumen-cifra"><b>${marcadas}</b><span>${marcadas === 1 ? 'serie guardada' : 'series guardadas'}</span></div>
+      <div class="resumen-cifra"><b>${completos}/${slugs.length}</b><span>ejercicios</span></div>
+      <div class="resumen-cifra"><b>${volumen ? volumen.toLocaleString('es-MX') : '—'}</b><span>kg levantados</span></div>
+      <div class="resumen-cifra"><b>${duracion || '—'}</b><span>duración</span></div>
+    </div>
+    <p class="resumen-detalle">
+      ${estado.cardio ? 'Cardio hecho. ' : 'Falta el cardio de 20 a 30 minutos. '}
+      Tus pesos de hoy aparecerán como referencia la próxima vez que entrenes ${estado.dia.nombre.toLowerCase()}.
+    </p>
+    <ul class="resumen-lista">${porEjercicio}</ul>
+    <button class="btn-primario" data-cerrar-hoja>Listo</button>`;
+  $('#hoja').classList.remove('oculto');
+}
+
+async function reabrirRutina() {
+  try {
+    const { error } = await sb.from('sesiones').update({ finalizada_at: null }).eq('id', estado.sesionId);
+    if (error) throw error;
+    estado.finalizada = null;
+    pintarFinalizacion();
+    avisar('Rutina reabierta');
+  } catch {
+    mostrarFallo(reabrirRutina, 'No se pudo reabrir. Revisa tu conexión.');
+  }
+}
+
+$('#btn-finalizar').addEventListener('click', finalizarRutina);
+$('#btn-reabrir').addEventListener('click', reabrirRutina);
 
 // ============================================================
 //  Historial por ejercicio
