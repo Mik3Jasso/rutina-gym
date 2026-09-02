@@ -326,22 +326,18 @@ function limpiarPantalla() {
 async function cargarFechas() {
   const { data } = await sb
     .from('sesiones')
-    .select('fecha, finalizada_at')
+    .select('fecha')
     .eq('dia', estado.dia.dia)
     .order('fecha', { ascending: false })
     .limit(30);
 
-  const cerradas = {};
-  const fechas = (data || []).map((x) => {
-    cerradas[x.fecha] = !!x.finalizada_at;
-    return x.fecha;
-  });
+  const fechas = (data || []).map((x) => x.fecha);
   if (!fechas.includes(hoy())) fechas.unshift(hoy());
 
   estado.fechas = fechas;
   $('#fechas').innerHTML = fechas.map((f) => `
     <button class="chip-fecha" data-fecha="${f}" aria-pressed="${f === estado.fecha}">
-      ${f === hoy() ? 'Hoy' : fechaCorta(f)}${cerradas[f] ? '<span class="punto-fin" aria-label="terminado"></span>' : ''}
+      ${f === hoy() ? 'Hoy' : fechaCorta(f)}
     </button>`).join('');
   $('#fechas').classList.toggle('oculto', fechas.length < 2);
 }
