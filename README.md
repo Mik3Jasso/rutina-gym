@@ -28,9 +28,21 @@ pensada para ir en el navegador. Lo que protege los datos es RLS.
 | Tabla | Para qué |
 |---|---|
 | `profiles` | Nombre de cada usuario, creado automáticamente al registrarse |
-| `sesiones` | Un entrenamiento: día, fecha y si se hizo el cardio |
+| `rutinas_usuario` | Qué rutinas tiene cada persona en su catálogo y cuál usa ahora |
+| `sesiones` | Un entrenamiento: rutina, día, fecha y si se hizo el cardio |
 | `series_log` | Peso, repeticiones y check de cada serie |
 | `ultimo_registro` | Vista: último peso usado en cada ejercicio y serie |
+
+## Agregar una rutina nueva
+
+Las rutinas se definen en `js/rutina.js`, en el array `RUTINAS`. Cada una
+lleva su `id`, su `nombre`, la fecha en que se creó y sus días; los
+ejercicios se toman de `EJERCICIOS` y los que falten se dibujan en el
+mismo archivo. Una rutina con `porDefecto: true` aparece sola en el
+catálogo de cualquiera que entre.
+
+Para dársela sólo a ciertas personas, se deja `porDefecto: false` y se
+insertan las filas correspondientes en `rutinas_usuario`.
 
 ## La rutina
 

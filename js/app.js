@@ -1,5 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.58.0';
-import { SERIES, EJERCICIOS, DIAS, urlVideo } from './rutina.js';
+import { SERIES, EJERCICIOS, RUTINAS, rutinaPorId, urlVideo } from './rutina.js';
 
 // ------------------------------------------------------------
 //  Conexión. Esta llave es pública por diseño: lo que protege
@@ -18,28 +18,35 @@ const $ = (s) => document.querySelector(s);
 // teléfono descarta la página al cambiar de app, volvemos donde estabas.
 const CLAVE_UBICACION = 'rutina:dia';
 
-function recordarUbicacion(numDia) {
+function recordarUbicacion(rutinaId, numDia) {
+  const marca = rutinaId ? (numDia ? `${rutinaId}/${numDia}` : rutinaId) : '';
   try {
-    if (numDia) sessionStorage.setItem(CLAVE_UBICACION, String(numDia));
+    if (marca) sessionStorage.setItem(CLAVE_UBICACION, marca);
     else sessionStorage.removeItem(CLAVE_UBICACION);
   } catch {}
   try {
-    history.replaceState(null, '', numDia ? `#dia${numDia}` : location.pathname);
+    history.replaceState(null, '', marca ? `#${marca}` : location.pathname);
   } catch {}
 }
 
 function ubicacionGuardada() {
-  const deLaUrl = (location.hash.match(/^#dia([1-5])$/) || [])[1];
-  let deLaSesion = null;
-  try { deLaSesion = sessionStorage.getItem(CLAVE_UBICACION); } catch {}
-  const n = Number(deLaUrl || deLaSesion);
-  return n >= 1 && n <= 5 ? n : null;
+  let marca = decodeURIComponent(location.hash.replace(/^#/, ''));
+  if (!marca) {
+    try { marca = sessionStorage.getItem(CLAVE_UBICACION) || ''; } catch {}
+  }
+  if (!marca) return null;
+  const [rutinaId, dia] = marca.split('/');
+  if (!rutinaPorId(rutinaId)) return null;
+  const n = Number(dia);
+  return { rutinaId, dia: n >= 1 && n <= 5 ? n : null };
 }
 const CLAVE_BORRADOR = 'rutina:borrador';
 
 const estado = {
   usuario: null,
   nombre: '',
+  rutina: null,      // rutina abierta del catálogo
+  catalogo: [],      // rutinas del usuario, con cuál está activa
   dia: null,        // día abierto
   sesionId: null,
   registros: {},    // "slug:serie" -> {peso, reps, hecho} (lo que se ve)
@@ -84,6 +91,13 @@ const relativo = (iso) => {
   return `Hace ${Math.floor(n / 7)} sem`;
 };
 
+const fechaLarga = (iso) => {
+  const [a, m, d] = iso.split('-').map(Number);
+  const meses = ['enero','febrero','marzo','abril','mayo','junio',
+                 'julio','agosto','septiembre','octubre','noviembre','diciembre'];
+  return `${d} de ${meses[m - 1]} de ${a}`;
+};
+
 const nDecimal = (v) => (v === null || v === undefined || v === '' ? '' : String(Number(v)));
 
 let avisoTimer;
@@ -115,7 +129,7 @@ const escribirTodo = (obj) => {
   try { localStorage.setItem(CLAVE_BORRADOR, JSON.stringify(obj)); } catch {}
 };
 
-const claveDia = () => `${estado.dia?.dia}:${estado.fecha || hoy()}`;
+const claveDia = () => `${estado.rutina?.id}:${estado.dia?.dia}:${estado.fecha || hoy()}`;
 
 function anotarBorrador(clave, datos) {
   const todo = leerTodo();
@@ -231,12 +245,90 @@ $('#btn-menu').addEventListener('click', async () => {
 });
 
 // ============================================================
-//  Pantalla de inicio
+//  Catálogo de rutinas
+// ============================================================
+async function cargarCatalogo() {
+  estado.rutina = null;
+  recordarUbicacion(null);
+  document.documentElement.style.setProperty('--acento', '#ff6b35');
+
+  const { data } = await sb
+    .from('rutinas_usuario')
+    .select('rutina_id, activa, agregada_at');
+  let mias = data || [];
+
+  // Las rutinas marcadas por defecto entran solas en el catálogo de quien no las tenga
+  const faltan = RUTINAS.filter(
+    (r) => r.porDefecto && !mias.some((m) => m.rutina_id === r.id));
+  if (faltan.length) {
+    const nuevas = faltan.map((r, i) => ({
+      user_id: estado.usuario.id,
+      rutina_id: r.id,
+      activa: mias.length === 0 && i === 0,
+    }));
+    const { error } = await sb.from('rutinas_usuario').insert(nuevas);
+    if (!error) mias = mias.concat(nuevas.map((n) => ({ ...n, agregada_at: null })));
+  }
+
+  // Sólo las que existen en el código, y con la definición al lado
+  estado.catalogo = mias
+    .map((m) => ({ ...m, def: rutinaPorId(m.rutina_id) }))
+    .filter((m) => m.def)
+    .sort((a, b) => b.def.creada.localeCompare(a.def.creada));
+
+  $('#nombre-usuario').textContent = estado.nombre || 'atleta';
+  $('#lista-rutinas').innerHTML = estado.catalogo.length
+    ? estado.catalogo.map((m) => `
+        <button class="tarjeta-rutina ${m.activa ? 'activa' : ''}" data-rutina="${m.rutina_id}">
+          <span class="rutina-icono">
+            <svg viewBox="0 0 48 48" aria-hidden="true"><path d="M6 20h4v8H6zM38 20h4v8h-4zM12 16h5v16h-5zM31 16h5v16h-5zM17 22h14v4H17z"/></svg>
+          </span>
+          <span class="rutina-info">
+            <h3>${m.def.nombre}${m.activa ? '<span class="insignia-activa">activa</span>' : ''}</h3>
+            <p>Creada el ${fechaLarga(m.def.creada)}</p>
+          </span>
+          <span class="rutina-flecha">
+            <svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </span>
+        </button>`).join('')
+    : '<p class="catalogo-vacio">Todavía no tienes ninguna rutina en tu catálogo.</p>';
+
+  $('#lista-rutinas').querySelectorAll('.tarjeta-rutina').forEach((b) => {
+    b.addEventListener('click', () => abrirRutina(b.dataset.rutina));
+  });
+
+  mostrarVista('#vista-catalogo');
+}
+
+async function abrirRutina(rutinaId) {
+  const def = rutinaPorId(rutinaId);
+  if (!def) return;
+  estado.rutina = def;
+
+  // Abrir una rutina la vuelve la activa
+  const yaActiva = estado.catalogo.find((m) => m.rutina_id === rutinaId)?.activa;
+  if (!yaActiva) {
+    await sb.from('rutinas_usuario').update({ activa: false }).eq('user_id', estado.usuario.id);
+    await sb.from('rutinas_usuario').update({ activa: true })
+      .eq('user_id', estado.usuario.id).eq('rutina_id', rutinaId);
+    estado.catalogo.forEach((m) => { m.activa = m.rutina_id === rutinaId; });
+  }
+
+  $('#rutina-titulo').textContent = def.nombre;
+  $('#rutina-fecha').textContent = `Creada el ${fechaLarga(def.creada)}`;
+  await cargarInicio();
+}
+
+$('#btn-catalogo').addEventListener('click', cargarCatalogo);
+
+// ============================================================
+//  Días de la rutina abierta
 // ============================================================
 async function cargarInicio() {
   const { data } = await sb
     .from('sesiones')
     .select('dia, fecha, finalizada_at')
+    .eq('rutina_id', estado.rutina.id)
     .order('fecha', { ascending: false });
 
   estado.ultimasFechas = {};
@@ -255,13 +347,12 @@ async function cargarInicio() {
   const total = fechas.size;
   const ultima = [...fechas].sort().pop();
 
-  $('#nombre-usuario').textContent = estado.nombre || 'atleta';
   $('#resumen-semana').innerHTML = `
     <div class="resumen-item"><b>${semana}</b><span>esta semana</span></div>
     <div class="resumen-item"><b>${total}</b><span>entrenamientos</span></div>
     <div class="resumen-item"><b style="font-size:19px;padding-top:5px">${ultima ? fechaCorta(ultima) : '—'}</b><span>última vez</span></div>`;
 
-  $('#lista-dias').innerHTML = DIAS.map((d) => {
+  $('#lista-dias').innerHTML = estado.rutina.dias.map((d) => {
     const fecha = estado.ultimasFechas[d.dia];
     const esHoy = fecha && diasDesde(fecha) === 0;
     const terminadoHoy = esHoy && cerradas[d.dia];
@@ -287,7 +378,7 @@ async function cargarInicio() {
     b.addEventListener('click', () => abrirDia(Number(b.dataset.dia)));
   });
 
-  recordarUbicacion(null);
+  recordarUbicacion(estado.rutina.id);
   mostrarVista('#vista-inicio');
 }
 
@@ -295,7 +386,7 @@ async function cargarInicio() {
 //  Vista de un día
 // ============================================================
 async function abrirDia(numDia) {
-  const dia = DIAS.find((d) => d.dia === numDia);
+  const dia = estado.rutina.dias.find((d) => d.dia === numDia);
   if (!dia || !dia.listo) return;
   estado.dia = dia;
   estado.fecha = hoy();
@@ -303,7 +394,7 @@ async function abrirDia(numDia) {
   $('#dia-etiqueta').textContent = `Día ${dia.dia}`;
   $('#dia-titulo').textContent = dia.nombre;
   document.documentElement.style.setProperty('--acento', dia.tono);
-  recordarUbicacion(dia.dia);
+  recordarUbicacion(estado.rutina.id, dia.dia);
   mostrarVista('#vista-dia');
   limpiarPantalla();
 
@@ -327,6 +418,7 @@ async function cargarFechas() {
   const { data } = await sb
     .from('sesiones')
     .select('fecha')
+    .eq('rutina_id', estado.rutina.id)
     .eq('dia', estado.dia.dia)
     .order('fecha', { ascending: false })
     .limit(30);
@@ -357,6 +449,7 @@ async function cargarSesion() {
   const { data: ses } = await sb
     .from('sesiones')
     .select('id, cardio_hecho, finalizada_at, created_at')
+    .eq('rutina_id', estado.rutina.id)
     .eq('dia', estado.dia.dia).eq('fecha', estado.fecha)
     .maybeSingle();
 
@@ -585,6 +678,7 @@ $('#lista-bloques').addEventListener('input', (e) => {
 
 $('#btn-volver').addEventListener('click', () => {
   document.documentElement.style.setProperty('--acento', '#ff6b35');
+  recordarUbicacion(estado.rutina.id);
   cargarInicio();
 });
 
@@ -625,8 +719,8 @@ async function asegurarSesion() {
     const { data, error } = await sb
       .from('sesiones')
       .upsert(
-        { user_id: estado.usuario.id, dia: estado.dia.dia, fecha: estado.fecha },
-        { onConflict: 'user_id,dia,fecha' }
+        { user_id: estado.usuario.id, rutina_id: estado.rutina.id, dia: estado.dia.dia, fecha: estado.fecha },
+        { onConflict: 'user_id,rutina_id,dia,fecha' }
       )
       .select('id')
       .single();
@@ -997,10 +1091,14 @@ async function arrancar() {
   const { data: perfil } = await sb.from('profiles').select('nombre').eq('id', session.user.id).maybeSingle();
   estado.nombre = perfil?.nombre || session.user.email.split('@')[0];
 
-  // Leerlo ANTES: cargarInicio() borra la ubicación al mostrar el inicio.
+  // Leerlo ANTES: cargar el catálogo borra la ubicación guardada.
   const dondeEstaba = ubicacionGuardada();
-  await cargarInicio();
-  if (dondeEstaba) await abrirDia(dondeEstaba);
+  await cargarCatalogo();
+
+  if (dondeEstaba) {
+    await abrirRutina(dondeEstaba.rutinaId);
+    if (dondeEstaba.dia) await abrirDia(dondeEstaba.dia);
+  }
 }
 
 sb.auth.onAuthStateChange((evento, sesion) => {

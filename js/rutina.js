@@ -824,7 +824,16 @@ export const EJERCICIOS = {
   },
 };
 
-export const DIAS = [
+// ------------------------------------------------------------
+//  Catalogo de rutinas
+//
+//  Cada rutina es una entrada aqui. Para agregar una nueva se define
+//  con su id, su fecha de creacion y sus dias; los ejercicios se toman
+//  de EJERCICIOS y los que falten se dibujan arriba.
+//  `porDefecto` significa que aparece sola en el catalogo de cualquiera.
+// ------------------------------------------------------------
+
+const DIAS_ENTRENADOR = [
   {
     dia: 1, nombre: 'Pecho', tono: '#ff6b35', listo: true,
     bloques: [
@@ -869,6 +878,19 @@ export const DIAS = [
     ],
   },
 ];
+
+export const RUTINAS = [
+  {
+    id: 'entrenador-2026-08',
+    nombre: 'Rutina del entrenador',
+    resumen: '5 días · superseries · 4 series de 15/12/10/8',
+    creada: '2026-08-31',
+    porDefecto: true,
+    dias: DIAS_ENTRENADOR,
+  },
+];
+
+export const rutinaPorId = (id) => RUTINAS.find((r) => r.id === id) || null;
 
 export const urlVideo = (nombre) =>
   'https://www.youtube.com/results?search_query=' +

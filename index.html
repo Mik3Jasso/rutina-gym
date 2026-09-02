@@ -65,8 +65,8 @@
   </div>
 </section>
 
-<!-- ============ INICIO: LOS 5 DÍAS ============ -->
-<section id="vista-inicio" class="vista oculto">
+<!-- ============ CATÁLOGO DE RUTINAS ============ -->
+<section id="vista-catalogo" class="vista oculto">
   <header class="cabecera">
     <div>
       <p class="saludo">Hola,</p>
@@ -77,9 +77,27 @@
     </button>
   </header>
 
+  <h2 class="titulo-seccion">Tus rutinas</h2>
+  <div id="lista-rutinas" class="lista-rutinas"></div>
+
+  <p class="pie-nota">¿Tu entrenador te dio una rutina nueva?<br>Pásamela y la agrego a tu catálogo.</p>
+</section>
+
+<!-- ============ RUTINA: SUS DÍAS ============ -->
+<section id="vista-inicio" class="vista oculto">
+  <header class="cabecera">
+    <button id="btn-catalogo" class="btn-icono" aria-label="Volver a tus rutinas">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+    <div style="flex:1;min-width:0">
+      <p class="saludo" id="rutina-fecha">—</p>
+      <h1 id="rutina-titulo">—</h1>
+    </div>
+  </header>
+
   <div class="resumen" id="resumen-semana"></div>
 
-  <h2 class="titulo-seccion">Tu rutina</h2>
+  <h2 class="titulo-seccion">Los días</h2>
   <div id="lista-dias" class="lista-dias"></div>
 
   <p class="pie-nota">4 series · 15 / 12 / 10 / 8 repeticiones · sube el peso en cada serie</p>
