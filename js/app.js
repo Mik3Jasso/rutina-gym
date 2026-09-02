@@ -45,6 +45,8 @@ const estado = {
   registros: {},    // "slug:serie" -> {peso, reps, hecho} (lo que se ve)
   guardados: {},    // "slug:serie" -> lo que el servidor tiene confirmado
   anteriores: {},   // "slug:serie" -> {peso, reps, fecha}
+  fecha: null,       // fecha del entrenamiento abierto (hoy por defecto)
+  fechas: [],        // fechas con entrenamiento de este día
   cardio: false,
   finalizada: null,  // marca de tiempo de cierre, o null si sigue abierta
   inicioSesion: null,
@@ -113,7 +115,7 @@ const escribirTodo = (obj) => {
   try { localStorage.setItem(CLAVE_BORRADOR, JSON.stringify(obj)); } catch {}
 };
 
-const claveDia = () => `${estado.dia?.dia}:${hoy()}`;
+const claveDia = () => `${estado.dia?.dia}:${estado.fecha || hoy()}`;
 
 function anotarBorrador(clave, datos) {
   const todo = leerTodo();
@@ -131,6 +133,12 @@ function limpiarBorrador(clave) {
 }
 
 const cargarBorrador = () => leerTodo()[claveDia()] || {};
+
+function limpiarBorradorCompleto() {
+  const todo = leerTodo();
+  delete todo[claveDia()];
+  escribirTodo(todo);
+}
 
 // ------------------------------------------------------------
 //  Aviso de fallo al guardar: no desaparece solo, y ofrece reintentar
@@ -290,23 +298,70 @@ async function abrirDia(numDia) {
   const dia = DIAS.find((d) => d.dia === numDia);
   if (!dia || !dia.listo) return;
   estado.dia = dia;
-  estado.registros = {};
-  estado.guardados = {};
-  estado.anteriores = {};
+  estado.fecha = hoy();
 
   $('#dia-etiqueta').textContent = `Día ${dia.dia}`;
   $('#dia-titulo').textContent = dia.nombre;
   document.documentElement.style.setProperty('--acento', dia.tono);
   recordarUbicacion(dia.dia);
   mostrarVista('#vista-dia');
-  pintarBloques();
+  limpiarPantalla();
 
-  // sesión de hoy (se crea sólo si no existe)
-  const slugs = dia.bloques.flat();
+  await cargarFechas();
+  await cargarSesion();
+}
+
+function limpiarPantalla() {
+  estado.registros = {};
+  estado.guardados = {};
+  estado.anteriores = {};
+  estado.sesionId = null;
+  estado.cardio = false;
+  estado.finalizada = null;
+  estado.inicioSesion = null;
+  pintarBloques();
+}
+
+// Fechas en las que ya entrenaste este día, para poder volver y corregir.
+async function cargarFechas() {
+  const { data } = await sb
+    .from('sesiones')
+    .select('fecha, finalizada_at')
+    .eq('dia', estado.dia.dia)
+    .order('fecha', { ascending: false })
+    .limit(30);
+
+  const cerradas = {};
+  const fechas = (data || []).map((x) => {
+    cerradas[x.fecha] = !!x.finalizada_at;
+    return x.fecha;
+  });
+  if (!fechas.includes(hoy())) fechas.unshift(hoy());
+
+  estado.fechas = fechas;
+  $('#fechas').innerHTML = fechas.map((f) => `
+    <button class="chip-fecha" data-fecha="${f}" aria-pressed="${f === estado.fecha}">
+      ${f === hoy() ? 'Hoy' : fechaCorta(f)}${cerradas[f] ? '<span class="punto-fin" aria-label="terminado"></span>' : ''}
+    </button>`).join('');
+  $('#fechas').classList.toggle('oculto', fechas.length < 2);
+}
+
+function marcarFechaActiva() {
+  $('#fechas').querySelectorAll('.chip-fecha').forEach((b) => {
+    b.setAttribute('aria-pressed', String(b.dataset.fecha === estado.fecha));
+  });
+  $('#aviso-pasado').classList.toggle('oculto', estado.fecha === hoy());
+}
+
+async function cargarSesion() {
+  limpiarPantalla();
+  marcarFechaActiva();
+
+  const slugs = estado.dia.bloques.flat();
   const { data: ses } = await sb
     .from('sesiones')
     .select('id, cardio_hecho, finalizada_at, created_at')
-    .eq('dia', dia.dia).eq('fecha', hoy())
+    .eq('dia', estado.dia.dia).eq('fecha', estado.fecha)
     .maybeSingle();
 
   if (ses) {
@@ -324,11 +379,6 @@ async function abrirDia(numDia) {
       estado.registros[clave] = fila;
       estado.guardados[clave] = { ...fila };
     });
-  } else {
-    estado.sesionId = null;
-    estado.cardio = false;
-    estado.finalizada = null;
-    estado.inicioSesion = null;
   }
 
   // pesos de la última vez, para referencia
@@ -348,13 +398,57 @@ async function abrirDia(numDia) {
 
   pintarBloques();
   Object.keys(borrador).forEach((clave) => marcarPendiente(clave, true));
-  if (Object.keys(borrador).length) {
-    avisar('Tienes series escritas sin guardar', true);
-  }
+  if (Object.keys(borrador).length) avisar('Tienes series escritas sin guardar', true);
+
   actualizarProgreso();
   pintarFinalizacion();
   $('#btn-cardio').setAttribute('aria-pressed', String(estado.cardio));
+  $('#btn-borrar-sesion').classList.toggle('oculto', !estado.sesionId);
 }
+
+// Cambiar de fecha dentro del mismo día
+$('#fechas').addEventListener('click', (e) => {
+  const chip = e.target.closest('.chip-fecha');
+  if (!chip || chip.dataset.fecha === estado.fecha) return;
+  if (document.querySelectorAll('#lista-bloques tr.pendiente').length &&
+      !confirm('Tienes series escritas sin guardar. Si cambias de fecha se quedan aquí, pero no se subirán.\n\n¿Cambiar de todos modos?')) return;
+  estado.fecha = chip.dataset.fecha;
+  cargarSesion();
+});
+
+// Eliminar el entrenamiento completo de esta fecha
+async function borrarSesion() {
+  if (!estado.sesionId) return;
+  const btn = $('#btn-borrar-sesion');
+  const cuantas = Object.values(estado.guardados).filter((g) => g.hecho).length;
+  const cuando = estado.fecha === hoy() ? 'de hoy' : `del ${fechaCorta(estado.fecha)}`;
+
+  const seguro = confirm(
+    `Vas a eliminar el entrenamiento ${cuando} de ${estado.dia.nombre}, ` +
+    `con ${cuantas} ${cuantas === 1 ? 'serie registrada' : 'series registradas'}.\n\n` +
+    'Esto no se puede deshacer.'
+  );
+  if (!seguro) return;
+
+  btn.disabled = true;
+  btn.textContent = 'Eliminando…';
+  try {
+    const { error } = await sb.from('sesiones').delete().eq('id', estado.sesionId);
+    if (error) throw error;
+    limpiarBorradorCompleto();
+    estado.fecha = hoy();
+    await cargarFechas();
+    await cargarSesion();
+    avisar('Entrenamiento eliminado');
+  } catch {
+    mostrarFallo(borrarSesion, 'No se pudo eliminar. Revisa tu conexión.');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Eliminar este entrenamiento';
+  }
+}
+
+$('#btn-borrar-sesion').addEventListener('click', borrarSesion);
 
 function pintarBloques() {
   const dia = estado.dia;
@@ -535,7 +629,7 @@ async function asegurarSesion() {
     const { data, error } = await sb
       .from('sesiones')
       .upsert(
-        { user_id: estado.usuario.id, dia: estado.dia.dia, fecha: hoy() },
+        { user_id: estado.usuario.id, dia: estado.dia.dia, fecha: estado.fecha },
         { onConflict: 'user_id,dia,fecha' }
       )
       .select('id')
@@ -610,6 +704,8 @@ async function guardarSerie(slug, serie, btn) {
     btn.setAttribute('aria-pressed', String(marcar));
     tr.classList.remove('pendiente');
     limpiarBorrador(clave);
+    // La sesión ya existe: se puede eliminar
+    $('#btn-borrar-sesion').classList.remove('oculto');
     actualizarPastilla(slug);
     actualizarProgreso();
     pintarFinalizacion();

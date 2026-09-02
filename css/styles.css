@@ -518,3 +518,44 @@ input{font-family:inherit}
   padding:2px 7px;border-radius:20px;text-transform:uppercase;
   letter-spacing:.05em;margin-left:6px;vertical-align:2px;
 }
+
+/* ============ FECHAS Y BORRADO ============ */
+.fechas{
+  display:flex;gap:8px;overflow-x:auto;margin-bottom:16px;
+  padding-bottom:4px;-webkit-overflow-scrolling:touch;
+  scrollbar-width:none;
+}
+.fechas::-webkit-scrollbar{display:none}
+.chip-fecha{
+  flex:none;padding:8px 14px;border-radius:20px;
+  background:var(--surface);border:1.5px solid var(--borde);
+  font-size:13.5px;font-weight:600;color:var(--muted);
+  white-space:nowrap;transition:all .15s;
+}
+.chip-fecha:hover{border-color:var(--muted-2)}
+.chip-fecha[aria-pressed="true"]{
+  background:var(--acento);border-color:var(--acento);color:#1a0d06;
+}
+.chip-fecha .punto-fin{
+  display:inline-block;width:5px;height:5px;border-radius:50%;
+  background:var(--ok);margin-left:6px;vertical-align:1px;
+}
+.chip-fecha[aria-pressed="true"] .punto-fin{background:#1a0d06}
+
+.aviso-pasado{
+  margin:-6px 0 16px;font-size:12.5px;font-weight:600;
+  color:var(--acento);text-align:center;
+}
+
+.btn-borrar{
+  width:100%;margin-top:12px;padding:13px;
+  background:transparent;border:1.5px solid var(--borde);
+  color:var(--muted);font-size:14.5px;font-weight:600;border-radius:12px;
+  transition:all .15s;
+}
+.btn-borrar:hover{
+  border-color:var(--peligro);color:var(--peligro);
+  background:rgba(255,77,77,.06);
+}
+.btn-borrar:active{transform:scale(.985)}
+.btn-borrar:disabled{opacity:.5}

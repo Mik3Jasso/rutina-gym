@@ -98,6 +98,10 @@
     <div class="progreso-anillo" id="progreso-dia" aria-hidden="true"></div>
   </header>
 
+  <!-- Fechas de este día: permite abrir y corregir entrenamientos anteriores -->
+  <div id="fechas" class="fechas" role="group" aria-label="Entrenamientos de este día"></div>
+  <p id="aviso-pasado" class="aviso-pasado oculto">Estás editando un entrenamiento anterior</p>
+
   <div id="lista-bloques" class="lista-bloques"></div>
 
   <div class="cardio-caja">
@@ -120,6 +124,8 @@
 
   <button id="btn-finalizar" class="btn-finalizar">Finalizar rutina</button>
   <p id="finalizar-nota" class="finalizar-nota"></p>
+
+  <button id="btn-borrar-sesion" class="btn-borrar oculto">Eliminar este entrenamiento</button>
 
   <div class="espacio-inferior"></div>
 </section>
