@@ -709,7 +709,7 @@ async function guardarSerie(slug, serie, btn) {
     actualizarPastilla(slug);
     actualizarProgreso();
     pintarFinalizacion();
-    if (marcar) iniciarTemporizador(90);
+    // El descanso lo arranca el usuario con su botón, no la palomita.
   } catch {
     btn.setAttribute('aria-pressed', 'false');
     tr.classList.add('pendiente');
