@@ -33,6 +33,30 @@ pensada para ir en el navegador. Lo que protege los datos es RLS.
 | `series_log` | Peso, repeticiones y check de cada serie |
 | `ultimo_registro` | Vista: último peso usado en cada ejercicio y serie |
 
+## Base de datos de ejercicios
+
+`js/rutina.js` contiene 53 ejercicios. Cada uno lleva, además de su nombre,
+ilustración y notas de técnica:
+
+| Campo | Para qué |
+|---|---|
+| `tipo` | Zona del cuerpo: `tronco-superior`, `pierna`, `brazo` u `hombro` |
+| `grupos` | Músculos que trabaja, en detalle |
+| `patron` | Patrón de movimiento (`empuje-horizontal`, `bisagra`, `zancada`…) |
+| `equipo` | Qué hace falta: `ninguno`, `mancuernas`, `barra`, `polea`, `maquina`… |
+| `unilateral` | Si se trabaja una extremidad a la vez |
+| `equivalentes` | Ejercicios que lo pueden sustituir |
+
+36 ejercicios forman la rutina del entrenador; los otros 17 existen sólo
+como alternativas para cuando un aparato está ocupado o no se tiene el
+equipo que pide el ejercicio.
+
+Las listas de `equivalentes` se generaron uniendo los ejercicios que
+comparten patrón de movimiento y músculo, más algunos enlaces a mano
+donde el mismo patrón sólo existe en máquina. Van ordenadas poniendo
+delante lo que menos equipo exige, y son recíprocas: si A sustituye a B,
+B sustituye a A.
+
 ## Agregar una rutina nueva
 
 Las rutinas se definen en `js/rutina.js`, en el array `RUTINAS`. Cada una
