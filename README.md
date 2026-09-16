@@ -35,7 +35,7 @@ pensada para ir en el navegador. Lo que protege los datos es RLS.
 
 ## Base de datos de ejercicios
 
-`js/rutina.js` contiene 53 ejercicios. Cada uno lleva, además de su nombre,
+`js/rutina.js` contiene 88 ejercicios. Cada uno lleva, además de su nombre,
 ilustración y notas de técnica:
 
 | Campo | Para qué |
@@ -47,9 +47,16 @@ ilustración y notas de técnica:
 | `unilateral` | Si se trabaja una extremidad a la vez |
 | `equivalentes` | Ejercicios que lo pueden sustituir |
 
-36 ejercicios forman la rutina del entrenador; los otros 17 existen sólo
+36 ejercicios forman la rutina del entrenador; los otros 52 existen sólo
 como alternativas para cuando un aparato está ocupado o no se tiene el
-equipo que pide el ejercicio.
+equipo que pide el ejercicio. La lista se cruzó con
+[free-exercise-db](https://github.com/yuhonas/free-exercise-db) (dominio
+público, 876 ejercicios) para no dejar fuera nada común ni inventarse
+nombres, pero la selección es curada a mano: el criterio automático
+proponía rarezas como *Kettlebell Pirate Ships* o *Cable Judo Flip*.
+
+Cubre abdomen, pantorrilla y trapecio, que la rutina del entrenador no
+entrena pero forman parte de cualquier gimnasio.
 
 Las listas de `equivalentes` se generaron uniendo los ejercicios que
 comparten patrón de movimiento y músculo, más algunos enlaces a mano

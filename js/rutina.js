@@ -809,6 +809,455 @@ const svgAbduccionDePie = svg(`
   ${flecha('M126 98 Q136 82 124 70')}
 `);
 
+
+// ------------------------------------------------------------
+//  ABDOMEN, PANTORRILLA Y TRAPECIO
+//  Grupos que la rutina del entrenador no toca, pero que forman
+//  parte de cualquier gimnasio.
+// ------------------------------------------------------------
+
+const svgEncogimiento = svg(`
+  ${marco('M14 106 L146 106')}
+  ${trazo('M86 100 L106 76 L112 102')}
+  ${cabeza(46, 76)}
+  ${trazo('M54 82 L86 100')}
+  ${musculo(70, 92, 12, 8, 30)}
+  ${trazo('M56 86 L70 82', 4.5)}
+  ${flecha('M36 92 Q34 74 48 66')}
+`);
+
+const svgAbdominalCompleto = svg(`
+  ${marco('M14 106 L146 106')}
+  ${trazo('M88 100 L108 74 L114 102')}
+  ${cabeza(58, 58)}
+  ${trazo('M63 67 L88 100')}
+  ${musculo(76, 84, 12, 8, 36)}
+  ${trazo('M62 70 L78 66', 4.5)}
+  ${flecha('M38 88 Q40 64 56 52')}
+`);
+
+const svgElevacionPiernas = svg(`
+  ${marco('M24 20 L136 20', 5)}
+  ${marco('M30 20 L30 8 M130 20 L130 8')}
+  ${cabeza(78, 48)}
+  ${trazo('M72 40 L70 24', 4.5)}
+  ${trazo('M84 40 L86 24', 4.5)}
+  ${trazo('M78 57 L78 84')}
+  ${musculo(78, 76, 12, 9)}
+  ${trazo('M78 84 L108 86 L114 74')}
+  ${flecha('M116 108 Q130 94 122 80')}
+`);
+
+const svgEncogimientoPolea = svg(`
+  ${marco('M136 12 L136 112', 5)}
+  ${polea(136, 18)}
+  ${cable('M136 23 L100 44')}
+  ${marco('M50 104 L114 104')}
+  ${cabeza(70, 50)}
+  ${trazo('M72 59 L68 84')}
+  ${musculo(70, 71, 11, 9)}
+  ${trazo('M68 84 L92 92 L98 102')}
+  ${trazo('M74 56 L92 48 L100 44', 4.5)}
+  ${flecha('M50 62 Q46 80 58 90')}
+`);
+
+const svgPlancha = svg(`
+  ${marco('M14 106 L146 106')}
+  ${cabeza(36, 64)}
+  ${trazo('M45 68 L118 92')}
+  ${musculo(78, 80, 15, 8, 18)}
+  ${trazo('M48 72 L40 92 L64 98', 4.5)}
+  ${trazo('M118 92 L130 104')}
+`);
+
+const svgGiroRuso = svg(`
+  ${marco('M18 106 L142 106')}
+  ${cabeza(54, 46)}
+  ${trazo('M57 55 L72 84')}
+  ${musculo(66, 72, 11, 9, 26)}
+  ${trazo('M72 84 L100 74 L114 88')}
+  ${trazo('M62 64 L88 62', 4.5)}
+  ${mancuernaChica(96, 62, 0)}
+  ${flecha('M98 42 Q76 32 58 44')}
+`);
+
+const svgBicicleta = svg(`
+  ${marco('M14 106 L146 106')}
+  ${cabeza(42, 80)}
+  ${trazo('M51 86 L86 96')}
+  ${musculo(68, 90, 12, 7, 14)}
+  ${trazo('M86 96 L106 76 L100 58')}
+  ${trazo('M86 96 L116 102 L132 98')}
+  ${trazo('M55 88 L70 78', 4.5)}
+  ${flecha('M112 56 Q96 46 84 60')}
+`);
+
+const svgTalonesDePie = svg(`
+  ${marco('M118 16 L118 112', 4)}
+  ${cabeza(80, 18)}
+  ${cojin(62, 30, 38, 11, 5)}
+  ${trazo('M80 41 L80 78')}
+  ${trazo('M80 78 L78 96')}
+  ${musculo(75, 88, 7, 11)}
+  ${trazo('M78 96 L90 102')}
+  ${marco('M58 104 L102 104', 5)}
+  ${flecha('M106 96 L106 66')}
+`);
+
+const svgTalonesSentado = svg(`
+  ${cojin(42, 68, 44, 11)}
+  ${cojin(34, 34, 11, 36)}
+  ${marco('M50 79 L48 112 M78 79 L80 112')}
+  ${cabeza(50, 24)}
+  ${trazo('M50 33 L50 62')}
+  ${trazo('M50 62 L90 70')}
+  ${cojin(76, 52, 26, 12, 5)}
+  ${trazo('M90 70 L94 92')}
+  ${musculo(97, 84, 7, 10)}
+  ${trazo('M94 92 L106 98')}
+  ${marco('M84 104 L122 104')}
+  ${flecha('M126 96 L126 72')}
+`);
+
+const svgPrensaTalones = svg(`
+  ${marco('M26 100 L128 44', 4)}
+  <path d="M116 30 L136 60" fill="none" stroke="${C.equipo}" stroke-width="7" stroke-linecap="round"/>
+  ${cojin(12 , 72, 40, 13, 6)}
+  ${cabeza(20, 62)}
+  ${trazo('M28 70 L58 80')}
+  ${trazo('M58 80 L96 60')}
+  ${musculo(90, 64, 8, 10, -30)}
+  ${trazo('M96 60 L114 48')}
+  ${flecha('M104 80 L124 64')}
+`);
+
+const svgEncogimientoBarra = svg(`
+  ${cabeza(80, 30)}
+  ${trazo('M80 39 L80 76')}
+  ${musculo(66, 46, 10, 7, -22)}
+  ${musculo(94, 46, 10, 7, 22)}
+  ${trazo('M80 76 L70 100 L68 114')}
+  ${trazo('M80 76 L90 100 L92 114')}
+  ${trazo('M70 47 L68 72', 4.5)}
+  ${trazo('M90 47 L92 72', 4.5)}
+  ${barra(80, 76, 56)}
+  ${flecha('M116 64 L116 38')}
+`);
+
+const svgEncogimientoMancuerna = svg(`
+  ${cabeza(80, 30)}
+  ${trazo('M80 39 L80 76')}
+  ${musculo(66, 46, 10, 7, -22)}
+  ${musculo(94, 46, 10, 7, 22)}
+  ${trazo('M80 76 L70 100 L68 114')}
+  ${trazo('M80 76 L90 100 L92 114')}
+  ${trazo('M68 47 L66 70', 4.5)}
+  ${trazo('M92 47 L94 70', 4.5)}
+  ${mancuerna(66, 76, 90)}
+  ${mancuerna(94, 76, 90)}
+  ${flecha('M118 64 L118 38')}
+`);
+
+const svgEncogimientoPoleaTrapecio = svg(`
+  ${marco('M134 14 L134 112', 5)}
+  ${polea(134, 104)}
+  ${cable('M134 104 L96 76')}
+  ${cabeza(74, 30)}
+  ${trazo('M74 39 L74 76')}
+  ${musculo(60, 46, 10, 7, -22)}
+  ${musculo(88, 46, 10, 7, 22)}
+  ${trazo('M74 76 L64 100 L62 114')}
+  ${trazo('M74 76 L84 100 L86 114')}
+  ${trazo('M86 47 L94 72', 4.5)}
+  ${flecha('M110 62 L110 36')}
+`);
+
+
+// ------------------------------------------------------------
+//  VARIANTES COMUNES
+//  Mismos movimientos con otro aparato: lo que encuentras libre
+//  cuando lo que buscabas está ocupado.
+// ------------------------------------------------------------
+
+const svgBancoInclinadoBarra = svg(`
+  <path d="M40 100 L95 52 L104 62 L49 110 Z" fill="${C.equipoRelleno}" stroke="${C.equipo}" stroke-width="3" stroke-linejoin="round"/>
+  ${marco('M44 104 L36 116 M96 62 L100 116')}
+  ${cabeza(98, 47)}
+  ${trazo('M92 55 L64 85')}
+  ${musculo(86, 62, 13, 9, -40)}
+  ${trazo('M64 85 L44 92 L30 104')}
+  ${trazo('M90 58 L106 40', 4.5)}
+  ${trazo('M84 64 L100 46', 4.5)}
+  ${barra(104, 40, 46)}
+  ${flecha('M128 56 L128 32')}
+`);
+
+const svgBancoDeclinadoMancuernas = svg(`
+  <path d="M34 62 L110 86 L106 96 L30 72 Z" fill="${C.equipoRelleno}" stroke="${C.equipo}" stroke-width="3" stroke-linejoin="round"/>
+  ${marco('M44 94 L42 114 M98 90 L102 114')}
+  ${cabeza(40, 56)}
+  ${trazo('M48 62 L94 78')}
+  ${musculo(66, 68, 13, 8, 18)}
+  ${trazo('M94 78 L110 88 L118 102')}
+  ${trazo('M56 62 L54 42', 4.5)}
+  ${trazo('M64 66 L62 46', 4.5)}
+  ${mancuerna(58, 36, 6)}
+  ${flecha('M32 46 L32 24')}
+`);
+
+const svgRemoT = svg(`
+  ${marco('M18 108 L136 108')}
+  ${marco('M20 108 L104 88', 4)}
+  ${disco(112, 86, 11)}
+  ${cabeza(50, 44)}
+  ${trazo('M59 48 L100 60')}
+  ${musculo(78, 54, 13, 8, 12)}
+  ${trazo('M100 60 L104 84 L102 106')}
+  ${trazo('M100 60 L92 84 L90 106')}
+  ${trazo('M70 52 L72 72 L74 86', 4.5)}
+  ${flecha('M122 96 L122 70')}
+`);
+
+const svgRemoMaquina = svg(`
+  ${marco('M130 14 L130 112', 4)}
+  ${cojin(56, 84, 42, 10)}
+  ${cojin(94, 44, 11, 36)}
+  ${marco('M64 94 L62 114 M92 94 L94 114')}
+  ${cabeza(86, 34)}
+  ${trazo('M86 43 L86 82')}
+  ${musculo(86, 60, 12, 9)}
+  ${trazo('M92 54 L108 52 L118 54', 4.5)}
+  ${marco('M118 40 L118 68')}
+  ${flecha('M112 78 L90 82')}
+`);
+
+const svgRemoVerticalBarra = svg(`
+  ${cabeza(80, 26)}
+  ${trazo('M80 35 L80 78')}
+  ${musculo(66, 44, 9, 6, -24)}
+  ${musculo(94, 44, 9, 6, 24)}
+  ${trazo('M80 78 L70 102 L68 114')}
+  ${trazo('M80 78 L90 102 L92 114')}
+  ${trazo('M74 44 L58 50 L72 58', 4.5)}
+  ${trazo('M86 44 L102 50 L88 58', 4.5)}
+  ${barra(80, 58, 42)}
+  ${flecha('M116 78 L116 52')}
+`);
+
+const svgPressNeutroMancuerna = svg(`
+  ${cabeza(80, 48)}
+  ${trazo('M80 57 L80 86')}
+  ${musculo(80, 62, 13, 8)}
+  ${trazo('M80 86 L70 106 L68 116')}
+  ${trazo('M80 86 L90 106 L92 116')}
+  ${trazo('M74 60 L60 42 L58 30', 4.5)}
+  ${trazo('M86 60 L100 42 L102 30', 4.5)}
+  ${mancuerna(56, 26, 90)}
+  ${mancuerna(104, 26, 90)}
+  ${flecha('M126 56 L126 28')}
+`);
+
+const svgCurlBarraZ = svg(`
+  ${cabeza(80, 26)}
+  ${trazo('M80 35 L80 76')}
+  ${trazo('M80 76 L70 100 L68 114')}
+  ${trazo('M80 76 L90 100 L92 114')}
+  ${trazo('M73 44 L60 62 L67 76', 4.5)}
+  ${trazo('M87 44 L100 62 L93 76', 4.5)}
+  ${musculo(63, 55, 8, 6, 32)}
+  ${musculo(97, 55, 8, 6, -32)}
+  <path d="M54 80 L64 74 L72 80 L88 80 L96 74 L106 80" fill="none" stroke="${C.equipo}" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="47" y="72" width="6" height="16" rx="2" fill="${C.cuerpo}"/>
+  <rect x="107" y="72" width="6" height="16" rx="2" fill="${C.cuerpo}"/>
+  ${flecha('M124 88 Q132 68 118 56')}
+`);
+
+const svgCurlMancuerna = svg(`
+  ${cabeza(80, 26)}
+  ${trazo('M80 35 L80 76')}
+  ${trazo('M80 76 L70 100 L68 114')}
+  ${trazo('M80 76 L90 100 L92 114')}
+  ${trazo('M73 44 L62 62 L68 74', 4.5)}
+  ${trazo('M87 44 L98 62 L92 74', 4.5)}
+  ${musculo(64, 55, 8, 6, 32)}
+  ${musculo(96, 55, 8, 6, -32)}
+  ${mancuerna(66, 76, 0)}
+  ${mancuerna(94, 76, 0)}
+  ${flecha('M120 88 Q128 70 114 58')}
+`);
+
+const svgCurlInclinado = svg(`
+  <path d="M44 104 L96 56 L104 66 L52 114 Z" fill="${C.equipoRelleno}" stroke="${C.equipo}" stroke-width="3" stroke-linejoin="round"/>
+  ${marco('M50 108 L44 118 M98 66 L102 118')}
+  ${cabeza(98, 52)}
+  ${trazo('M92 60 L64 88')}
+  ${musculo(78, 76, 8, 7, -40)}
+  ${trazo('M86 64 L86 86 L96 94', 4.5)}
+  ${mancuerna(102, 98, 0)}
+  ${flecha('M122 98 Q130 78 116 68')}
+`);
+
+const svgCurlMaquina = svg(`
+  ${marco('M24 16 L24 112', 4)}
+  ${cojin(52, 84, 40, 10)}
+  <path d="M54 62 L94 46 L100 56 L60 72 Z" fill="${C.equipoRelleno}" stroke="${C.equipo}" stroke-width="3" stroke-linejoin="round"/>
+  ${marco('M60 94 L58 114 M86 94 L88 114')}
+  ${cabeza(50, 40)}
+  ${trazo('M52 49 L58 82')}
+  ${trazo('M56 56 L86 50 L104 62', 4.5)}
+  ${musculo(74, 52, 11, 6, -16)}
+  ${flecha('M120 78 Q128 62 116 54')}
+`);
+
+const svgExtensionTrasNucaBarra = svg(`
+  ${cabeza(78, 44)}
+  ${trazo('M78 53 L78 82')}
+  ${trazo('M78 82 L68 104 L66 116')}
+  ${trazo('M78 82 L88 104 L90 116')}
+  ${trazo('M72 56 L70 36 L84 30', 4.5)}
+  ${trazo('M84 56 L86 36 L72 30', 4.5)}
+  ${musculo(74, 45, 7, 9, 6)}
+  ${barra(78, 28, 46)}
+  ${flecha('M116 48 L116 24')}
+`);
+
+const svgPressCerrado = svg(`
+  ${cojin(30, 80, 86, 11, 4)}
+  ${marco('M40 91 L36 114 M106 91 L110 114')}
+  ${cabeza(106, 70)}
+  ${trazo('M97 74 L62 74')}
+  ${musculo(94, 58, 7, 11, 8)}
+  ${trazo('M62 74 L46 84 L32 100')}
+  ${trazo('M92 70 L90 46', 4.5)}
+  ${trazo('M84 72 L82 46', 4.5)}
+  ${barra(86, 42, 32)}
+  ${flecha('M120 54 L120 28')}
+`);
+
+const svgExtensionCuerdaTrasNuca = svg(`
+  ${marco('M16 14 L16 112', 5)}
+  ${polea(16, 22)}
+  ${cable('M16 27 L48 42')}
+  <path d="M48 42 L62 32 M48 42 L60 48" fill="none" stroke="${C.cuerpo}" stroke-width="4" stroke-linecap="round"/>
+  ${cabeza(90, 46)}
+  ${trazo('M90 55 L90 84')}
+  ${trazo('M90 84 L80 106 L78 116')}
+  ${trazo('M90 84 L100 106 L102 116')}
+  ${trazo('M84 58 L78 34 L60 40', 4.5)}
+  ${musculo(82, 46, 7, 10)}
+  ${flecha('M114 48 L114 24')}
+`);
+
+const svgExtensionTricepsMaquina = svg(`
+  ${marco('M126 14 L126 112', 4)}
+  ${cojin(56, 84, 42, 10)}
+  ${cojin(52, 46, 11, 40)}
+  ${marco('M64 94 L62 114 M92 94 L94 114')}
+  ${cabeza(76, 36)}
+  ${trazo('M76 45 L76 82')}
+  ${trazo('M82 52 L100 58 L114 64', 4.5)}
+  ${musculo(93, 55, 9, 6, 18)}
+  ${marco('M114 52 L114 78')}
+  ${flecha('M102 80 L116 86')}
+`);
+
+const svgFondosMaquina = svg(`
+  ${marco('M124 14 L124 112', 4)}
+  ${cojin(54, 84, 42, 10)}
+  ${cojin(50, 46, 11, 40)}
+  ${marco('M62 94 L60 114 M90 94 L92 114')}
+  ${cabeza(76, 36)}
+  ${trazo('M76 45 L76 82')}
+  ${musculo(90, 58, 7, 10, 14)}
+  ${trazo('M82 52 L96 68 L108 80', 4.5)}
+  ${marco('M106 64 L106 94')}
+  ${flecha('M118 56 L118 86')}
+`);
+
+const svgSentadillaFrontal = svg(`
+  ${marco('M44 112 L120 112')}
+  ${cabeza(86, 30)}
+  ${barra(76, 44, 56)}
+  ${trazo('M84 48 L66 72')}
+  ${musculo(78, 78, 13, 8, -16)}
+  ${trazo('M66 72 L92 80 L90 110')}
+  ${trazo('M66 72 L78 86 L76 110')}
+  ${flecha('M114 84 L114 52')}
+`);
+
+const svgDesplanteBarra = svg(`
+  ${marco('M34 112 L130 112')}
+  ${cabeza(78, 30)}
+  ${barra(78, 46, 60)}
+  ${trazo('M78 50 L78 72')}
+  ${trazo('M78 72 L54 88 L54 110')}
+  ${musculo(63, 82, 11, 7, 32)}
+  ${trazo('M78 72 L100 94 L114 108')}
+  ${flecha('M124 66 L124 94')}
+`);
+
+
+const svgBuenosDias = svg(`
+  ${marco('M38 112 L122 112')}
+  ${cabeza(50, 44)}
+  ${barra(60, 50, 50)}
+  ${trazo('M58 54 L88 64')}
+  ${musculo(94, 80, 12, 8, -62)}
+  ${trazo('M88 64 L90 90 L88 110')}
+  ${flecha('M114 66 Q122 84 112 98')}
+`);
+
+const svgJalonEntrePiernas = svg(`
+  ${marco('M16 14 L16 112', 5)}
+  ${polea(16, 100)}
+  ${cable('M16 100 L64 90')}
+  ${marco('M38 112 L132 112')}
+  ${cabeza(94, 44)}
+  ${trazo('M87 50 L106 66')}
+  ${musculo(112, 80, 12, 8, -60)}
+  ${trazo('M106 66 L106 92 L104 110')}
+  ${trazo('M90 54 L78 78 L66 90', 4.5)}
+  ${flecha('M126 84 L126 56')}
+`);
+
+const svgSubidaAlCajon = svg(`
+  ${marco('M18 112 L136 112')}
+  ${cojin(84, 78, 48, 34, 4)}
+  ${cabeza(58, 28)}
+  ${trazo('M58 37 L58 68')}
+  ${trazo('M58 68 L84 74 L84 78')}
+  ${musculo(72, 70, 11, 7, 16)}
+  ${trazo('M58 68 L52 92 L50 112')}
+  ${trazo('M52 46 L46 68', 4.5)}
+  ${mancuernaChica(46, 74, 0)}
+  ${flecha('M32 80 Q32 58 46 50')}
+`);
+
+const svgAduccionBanda = svg(`
+  ${marco('M26 114 L136 114')}
+  ${marco('M132 58 L132 114', 4)}
+  <path d="M132 100 Q112 104 94 98" fill="none" stroke="${C.equipo}" stroke-width="3" stroke-dasharray="6 3"/>
+  ${cabeza(64, 28)}
+  ${trazo('M64 37 L64 74')}
+  ${trazo('M64 74 L60 98 L58 114')}
+  ${musculo(80, 86, 10, 7, -36)}
+  ${trazo('M64 74 L90 92 L94 100')}
+  ${flecha('M106 108 L78 106')}
+`);
+
+
+const svgTalonesMancuerna = svg(`
+  ${marco('M54 106 L106 106', 6)}
+  ${cabeza(80, 26)}
+  ${trazo('M80 35 L80 74')}
+  ${trazo('M80 74 L78 94')}
+  ${musculo(75, 86, 7, 11)}
+  ${trazo('M78 94 L92 100')}
+  ${trazo('M88 42 L94 70', 4.5)}
+  ${mancuerna(94, 78, 90)}
+  ${flecha('M114 92 L114 62')}
+`);
+
 // ------------------------------------------------------------
 
 export const EJERCICIOS = {
@@ -819,7 +1268,7 @@ export const EJERCICIOS = {
     grupos: ['pecho'],
     patron: 'empuje-horizontal',
     equipo: ['mancuernas', 'banco'],
-    equivalentes: ['flexiones', 'banco-horizontal-mancuernas', 'fondos-abiertos', 'banco-barra', 'press-pecho-maquina'],
+    equivalentes: ['flexiones', 'banco-declinado-mancuernas', 'banco-horizontal-mancuernas', 'fondos-abiertos', 'banco-inclinado-barra', 'banco-barra', 'press-pecho-maquina'],
     tecnica: 'Banco a 30–45°. Baja las mancuernas al nivel del pecho alto con los codos a unos 45° del torso, y empuja sin trabar los codos arriba.',
     svg: svgBancoInclinado,
   },
@@ -841,7 +1290,7 @@ export const EJERCICIOS = {
     grupos: ['pecho'],
     patron: 'empuje-horizontal',
     equipo: ['mancuernas', 'banco'],
-    equivalentes: ['flexiones', 'banco-inclinado-mancuernas', 'fondos-abiertos', 'banco-barra', 'press-pecho-maquina'],
+    equivalentes: ['flexiones', 'banco-declinado-mancuernas', 'banco-inclinado-mancuernas', 'fondos-abiertos', 'banco-inclinado-barra', 'banco-barra', 'press-pecho-maquina'],
     tecnica: 'Escápulas retraídas contra el banco y pies firmes. Baja controlado hasta sentir el estiramiento en el pecho y empuja juntando ligeramente arriba.',
     svg: svgBancoHorizontal,
   },
@@ -874,7 +1323,7 @@ export const EJERCICIOS = {
     grupos: ['pecho', 'triceps'],
     patron: 'empuje-horizontal',
     equipo: ['barras-paralelas'],
-    equivalentes: ['flexiones', 'banco-horizontal-mancuernas', 'banco-inclinado-mancuernas', 'banco-barra', 'press-pecho-maquina'],
+    equivalentes: ['flexiones', 'banco-declinado-mancuernas', 'banco-horizontal-mancuernas', 'banco-inclinado-mancuernas', 'banco-inclinado-barra', 'banco-barra', 'press-pecho-maquina'],
     tecnica: 'Barras anchas, torso inclinado al frente y codos abiertos hacia afuera. Baja hasta que el hombro quede a la altura del codo.',
     svg: svgFondos,
   },
@@ -887,7 +1336,7 @@ export const EJERCICIOS = {
     grupos: ['cuadriceps', 'gluteo'],
     patron: 'sentadilla',
     equipo: ['barra'],
-    equivalentes: ['sentadilla-goblet', 'prensa'],
+    equivalentes: ['sentadilla-goblet', 'sentadilla-frontal', 'prensa'],
     tecnica: 'Barra apoyada en los trapecios, pies al ancho de los hombros. Baja como si te sentaras, con la espalda recta y las rodillas siguiendo la línea de los pies.',
     svg: svgSentadilla,
   },
@@ -909,7 +1358,7 @@ export const EJERCICIOS = {
     grupos: ['cuadriceps', 'gluteo'],
     patron: 'sentadilla',
     equipo: ['maquina'],
-    equivalentes: ['sentadilla-goblet', 'sentadilla'],
+    equivalentes: ['sentadilla-goblet', 'sentadilla', 'sentadilla-frontal'],
     tecnica: 'Pies a media plataforma al ancho de las caderas. Baja hasta unos 90° sin que la cadera se despegue del asiento, y empuja sin bloquear las rodillas.',
     svg: svgPrensa,
   },
@@ -920,7 +1369,7 @@ export const EJERCICIOS = {
     grupos: ['aductores'],
     patron: 'aduccion',
     equipo: ['maquina'],
-    equivalentes: ['sentadilla-goblet'],
+    equivalentes: ['aduccion-banda', 'sentadilla-goblet'],
     tecnica: 'Sentado con las piernas abiertas contra los rodillos. Cierra apretando la cara interna del muslo y regresa despacio, sin dejar que el peso te gane.',
     svg: svgAductor,
   },
@@ -943,7 +1392,7 @@ export const EJERCICIOS = {
     grupos: ['cuadriceps', 'gluteo'],
     patron: 'zancada',
     equipo: ['smith'],
-    equivalentes: ['desplante-caminando', 'sentadilla-china'],
+    equivalentes: ['desplante-caminando', 'desplante-barra', 'sentadilla-china', 'subida-al-cajon'],
     tecnica: 'Un pie adelante y otro atrás bajo la barra guiada. Baja en vertical hasta que la rodilla trasera casi toque el piso, con el torso erguido.',
     svg: svgDesplanteSmith,
   },
@@ -956,7 +1405,7 @@ export const EJERCICIOS = {
     grupos: ['biceps'],
     patron: 'flexion-codo',
     equipo: ['barra'],
-    equivalentes: ['martillos-mancuerna', 'concentrado-polea', 'predicador'],
+    equivalentes: ['curl-mancuerna', 'martillos-mancuerna', 'curl-barra-z', 'curl-inclinado', 'concentrado-polea', 'curl-maquina', 'predicador'],
     tecnica: 'De pie, codos pegados al costado y agarre supino al ancho de los hombros. Sube sin balancear el torso y baja controlando todo el recorrido.',
     svg: svgBarraDePie,
   },
@@ -967,7 +1416,7 @@ export const EJERCICIOS = {
     grupos: ['biceps'],
     patron: 'flexion-codo',
     equipo: ['mancuernas'],
-    equivalentes: ['barra-de-pie', 'concentrado-polea', 'predicador'],
+    equivalentes: ['curl-mancuerna', 'barra-de-pie', 'curl-barra-z', 'curl-inclinado', 'concentrado-polea', 'curl-maquina', 'predicador'],
     tecnica: 'Agarre neutro, como si sostuvieras un martillo. Los codos no se mueven del costado; sube alternando o a la vez, sin girar la muñeca.',
     svg: svgMartillos,
   },
@@ -978,7 +1427,7 @@ export const EJERCICIOS = {
     grupos: ['biceps'],
     patron: 'flexion-codo',
     equipo: ['barra', 'maquina'],
-    equivalentes: ['martillos-mancuerna', 'barra-de-pie', 'concentrado-polea'],
+    equivalentes: ['curl-mancuerna', 'martillos-mancuerna', 'barra-de-pie', 'curl-barra-z', 'curl-inclinado', 'concentrado-polea', 'curl-maquina'],
     tecnica: 'Axilas apoyadas en el cojín inclinado para que el codo no se despegue. Baja hasta casi estirar del todo y sube sin despegar los brazos del apoyo.',
     svg: svgPredicador,
   },
@@ -989,7 +1438,7 @@ export const EJERCICIOS = {
     grupos: ['biceps'],
     patron: 'flexion-codo',
     equipo: ['polea', 'banco'],
-    equivalentes: ['martillos-mancuerna', 'barra-de-pie', 'predicador'],
+    equivalentes: ['curl-mancuerna', 'martillos-mancuerna', 'barra-de-pie', 'curl-barra-z', 'curl-inclinado', 'curl-maquina', 'predicador'],
     unilateral: true,
     tecnica: 'Sentado, codo apoyado en la cara interna del muslo y polea baja al frente. Sube apretando el bíceps arriba y baja lento hasta estirar.',
     svg: svgConcentrado,
@@ -1001,7 +1450,7 @@ export const EJERCICIOS = {
     grupos: ['triceps'],
     patron: 'extension-codo',
     equipo: ['barra', 'banco'],
-    equivalentes: ['fondos-banco', 'patada-de-mula', 'cuerda', 'jalon-una-mano-supino'],
+    equivalentes: ['fondos-banco', 'patada-de-mula', 'cuerda', 'extension-cuerda-tras-nuca', 'extension-tras-nuca-barra', 'jalon-una-mano-supino', 'extension-triceps-maquina', 'fondos-maquina', 'press-cerrado'],
     tecnica: 'Acostado, brazos verticales. Flexiona sólo el codo llevando la barra hacia la frente, con el brazo quieto, y estira sin bloquear de golpe.',
     svg: svgPressFrances,
   },
@@ -1012,7 +1461,7 @@ export const EJERCICIOS = {
     grupos: ['triceps'],
     patron: 'extension-codo',
     equipo: ['polea'],
-    equivalentes: ['fondos-banco', 'patada-de-mula', 'cuerda', 'press-frances'],
+    equivalentes: ['fondos-banco', 'patada-de-mula', 'cuerda', 'extension-cuerda-tras-nuca', 'extension-tras-nuca-barra', 'extension-triceps-maquina', 'fondos-maquina', 'press-cerrado', 'press-frances'],
     unilateral: true,
     tecnica: 'Polea alta con agarre supino, una mano. Codo pegado al costado y fijo: sólo se mueve el antebrazo. Estira abajo y aprieta un segundo.',
     svg: svgJalonSupino,
@@ -1024,7 +1473,7 @@ export const EJERCICIOS = {
     grupos: ['triceps'],
     patron: 'extension-codo',
     equipo: ['polea'],
-    equivalentes: ['fondos-banco', 'patada-de-mula', 'jalon-una-mano-supino', 'press-frances'],
+    equivalentes: ['fondos-banco', 'patada-de-mula', 'extension-cuerda-tras-nuca', 'extension-tras-nuca-barra', 'jalon-una-mano-supino', 'extension-triceps-maquina', 'fondos-maquina', 'press-cerrado', 'press-frances'],
     tecnica: 'Polea alta con cuerda, codos al costado. Empuja hacia abajo y separa las manos al final del recorrido para cerrar más el tríceps.',
     svg: svgCuerda,
   },
@@ -1035,7 +1484,7 @@ export const EJERCICIOS = {
     grupos: ['triceps'],
     patron: 'extension-codo',
     equipo: ['mancuernas'],
-    equivalentes: ['fondos-banco', 'cuerda', 'jalon-una-mano-supino', 'press-frances'],
+    equivalentes: ['fondos-banco', 'cuerda', 'extension-cuerda-tras-nuca', 'extension-tras-nuca-barra', 'jalon-una-mano-supino', 'extension-triceps-maquina', 'fondos-maquina', 'press-cerrado', 'press-frances'],
     unilateral: true,
     tecnica: 'Torso inclinado al frente y brazo pegado al costado. Estira el codo llevando la mancuerna hacia atrás y aprieta arriba antes de volver.',
     svg: svgPatadaMula,
@@ -1093,7 +1542,7 @@ export const EJERCICIOS = {
     grupos: ['espalda'],
     patron: 'jalon-horizontal',
     equipo: ['maquina'],
-    equivalentes: ['remo-barra', 'remo-mancuerna'],
+    equivalentes: ['remo-barra', 'remo-mancuerna', 'remo-t', 'remo-maquina'],
     tecnica: 'Espalda recta y rodillas ligeramente flexionadas. Jala al abdomen juntando las escápulas, sin echar el torso hacia atrás para ayudarte.',
     svg: svgRemoSentado,
   },
@@ -1104,7 +1553,7 @@ export const EJERCICIOS = {
     grupos: ['hombro'],
     patron: 'empuje-vertical',
     equipo: ['mancuernas', 'banco'],
-    equivalentes: ['press-militar', 'press-hombro-maquina'],
+    equivalentes: ['press-neutro-mancuerna', 'press-militar', 'press-hombro-maquina'],
     tecnica: 'Empieza con las palmas hacia ti a la altura del pecho. Gira las muñecas hacia afuera mientras empujas arriba, y deshaz el giro al bajar.',
     svg: svgPressArnold,
   },
@@ -1115,7 +1564,7 @@ export const EJERCICIOS = {
     grupos: ['espalda'],
     patron: 'jalon-horizontal',
     equipo: ['mancuernas', 'banco'],
-    equivalentes: ['remo-barra', 'remo-sentado'],
+    equivalentes: ['remo-barra', 'remo-t', 'remo-maquina', 'remo-sentado'],
     unilateral: true,
     tecnica: 'Rodilla y mano apoyadas en el banco, espalda paralela al piso. Jala la mancuerna hacia la cadera, con el codo pegado, sin girar el torso.',
     svg: svgRemoMancuerna,
@@ -1151,7 +1600,7 @@ export const EJERCICIOS = {
     grupos: ['femoral', 'gluteo'],
     patron: 'bisagra',
     equipo: ['barra'],
-    equivalentes: ['peso-muerto-rumano'],
+    equivalentes: ['peso-muerto-rumano', 'buenos-dias', 'jalon-entre-piernas'],
     tecnica: 'Barra pegada a las piernas y espalda recta. Lleva la cadera hacia atrás bajando la barra por el muslo, y sube empujando el piso con los pies.',
     svg: svgPesoMuerto,
   },
@@ -1185,7 +1634,7 @@ export const EJERCICIOS = {
     grupos: ['cuadriceps', 'gluteo'],
     patron: 'zancada',
     equipo: ['mancuernas'],
-    equivalentes: ['sentadilla-china', 'desplante-smith', 'extension-unilateral', 'extensiones'],
+    equivalentes: ['desplante-barra', 'sentadilla-china', 'subida-al-cajon', 'desplante-smith', 'extension-unilateral', 'extensiones'],
     tecnica: 'Mancuernas a los costados. Da un paso largo y baja hasta que la rodilla trasera casi toque el piso; impúlsate con el talón de adelante.',
     svg: svgDesplanteCaminando,
   },
@@ -1219,7 +1668,7 @@ export const EJERCICIOS = {
     grupos: ['cuadriceps', 'gluteo'],
     patron: 'zancada',
     equipo: ['mancuernas', 'banco'],
-    equivalentes: ['desplante-caminando', 'desplante-smith'],
+    equivalentes: ['desplante-caminando', 'desplante-barra', 'subida-al-cajon', 'desplante-smith'],
     unilateral: true,
     tecnica: 'Pie trasero elevado en el banco y el delantero bien adelantado. Baja en vertical con el torso erguido y sube empujando con el talón.',
     svg: svgSentadillaChina,
@@ -1233,7 +1682,7 @@ export const EJERCICIOS = {
     grupos: ['pecho', 'triceps'],
     patron: 'empuje-horizontal',
     equipo: ['ninguno'],
-    equivalentes: ['banco-horizontal-mancuernas', 'banco-inclinado-mancuernas', 'fondos-abiertos', 'banco-barra', 'press-pecho-maquina'],
+    equivalentes: ['banco-declinado-mancuernas', 'banco-horizontal-mancuernas', 'banco-inclinado-mancuernas', 'fondos-abiertos', 'banco-inclinado-barra', 'banco-barra', 'press-pecho-maquina'],
     tecnica: 'Manos algo más anchas que los hombros y cuerpo en línea recta. Baja hasta que el pecho casi toque el suelo, sin arquear la espalda baja.',
     svg: svgFlexiones,
   },
@@ -1244,7 +1693,7 @@ export const EJERCICIOS = {
     grupos: ['pecho'],
     patron: 'empuje-horizontal',
     equipo: ['barra', 'banco'],
-    equivalentes: ['flexiones', 'banco-horizontal-mancuernas', 'banco-inclinado-mancuernas', 'fondos-abiertos', 'press-pecho-maquina'],
+    equivalentes: ['flexiones', 'banco-declinado-mancuernas', 'banco-horizontal-mancuernas', 'banco-inclinado-mancuernas', 'fondos-abiertos', 'banco-inclinado-barra', 'press-pecho-maquina'],
     tecnica: 'Escápulas retraídas y pies firmes. Baja la barra al centro del pecho rozando, y empuja sin despegar la espalda alta del banco.',
     svg: svgBancoBarra,
   },
@@ -1255,7 +1704,7 @@ export const EJERCICIOS = {
     grupos: ['pecho'],
     patron: 'empuje-horizontal',
     equipo: ['maquina'],
-    equivalentes: ['flexiones', 'banco-horizontal-mancuernas', 'banco-inclinado-mancuernas', 'fondos-abiertos', 'banco-barra'],
+    equivalentes: ['flexiones', 'banco-declinado-mancuernas', 'banco-horizontal-mancuernas', 'banco-inclinado-mancuernas', 'fondos-abiertos', 'banco-inclinado-barra', 'banco-barra'],
     tecnica: 'Ajusta el asiento para que las agarraderas queden a la altura del pecho. Empuja al frente sin bloquear los codos y vuelve controlando.',
     svg: svgPressPechoMaquina,
   },
@@ -1299,7 +1748,7 @@ export const EJERCICIOS = {
     grupos: ['espalda'],
     patron: 'jalon-horizontal',
     equipo: ['barra'],
-    equivalentes: ['remo-mancuerna', 'remo-sentado'],
+    equivalentes: ['remo-mancuerna', 'remo-t', 'remo-maquina', 'remo-sentado'],
     tecnica: 'Torso inclinado unos 45° y espalda recta. Jala la barra al ombligo juntando las escápulas, y baja sin dejar caer el peso.',
     svg: svgRemoBarra,
   },
@@ -1310,7 +1759,7 @@ export const EJERCICIOS = {
     grupos: ['hombro'],
     patron: 'empuje-vertical',
     equipo: ['barra'],
-    equivalentes: ['press-arnold', 'press-hombro-maquina'],
+    equivalentes: ['press-neutro-mancuerna', 'press-arnold', 'press-hombro-maquina'],
     tecnica: 'De pie, barra a la altura de la clavícula y abdomen apretado. Empuja arriba metiendo la cabeza al final, sin arquear la espalda baja.',
     svg: svgPressMilitar,
   },
@@ -1321,7 +1770,7 @@ export const EJERCICIOS = {
     grupos: ['hombro'],
     patron: 'empuje-vertical',
     equipo: ['maquina'],
-    equivalentes: ['press-arnold', 'press-militar'],
+    equivalentes: ['press-neutro-mancuerna', 'press-arnold', 'press-militar'],
     tecnica: 'Espalda pegada al respaldo y agarraderas a la altura de los hombros. Empuja arriba sin bloquear los codos y baja controlado.',
     svg: svgPressHombroMaquina,
   },
@@ -1332,7 +1781,7 @@ export const EJERCICIOS = {
     grupos: ['hombro'],
     patron: 'elevacion-lateral',
     equipo: ['mancuernas'],
-    equivalentes: ['laterales-cable'],
+    equivalentes: ['laterales-cable', 'remo-vertical-barra'],
     tecnica: 'Codos ligeramente flexionados y fijos. Sube hasta la altura del hombro guiando con el codo, sin encoger los trapecios.',
     svg: svgLateralesMancuerna,
   },
@@ -1365,7 +1814,7 @@ export const EJERCICIOS = {
     grupos: ['triceps'],
     patron: 'extension-codo',
     equipo: ['banco'],
-    equivalentes: ['patada-de-mula', 'cuerda', 'jalon-una-mano-supino', 'press-frances'],
+    equivalentes: ['patada-de-mula', 'cuerda', 'extension-cuerda-tras-nuca', 'extension-tras-nuca-barra', 'jalon-una-mano-supino', 'extension-triceps-maquina', 'fondos-maquina', 'press-cerrado', 'press-frances'],
     tecnica: 'Manos en el borde del banco a la anchura de la cadera. Baja doblando sólo el codo, con los hombros lejos de las orejas.',
     svg: svgFondosBanco,
   },
@@ -1376,7 +1825,7 @@ export const EJERCICIOS = {
     grupos: ['cuadriceps', 'gluteo', 'aductores'],
     patron: 'sentadilla',
     equipo: ['mancuernas'],
-    equivalentes: ['sentadilla', 'aductor', 'extension-unilateral', 'extensiones', 'prensa'],
+    equivalentes: ['sentadilla', 'sentadilla-frontal', 'aductor', 'extension-unilateral', 'extensiones', 'prensa'],
     tecnica: 'Una mancuerna sujeta contra el pecho. Baja con el torso erguido y los codos entre las rodillas, y sube empujando con los talones.',
     svg: svgSentadillaGoblet,
   },
@@ -1387,7 +1836,7 @@ export const EJERCICIOS = {
     grupos: ['femoral', 'gluteo'],
     patron: 'bisagra',
     equipo: ['mancuernas'],
-    equivalentes: ['peso-muerto', 'femoral-acostado', 'femoral-de-pie', 'femoral-sentado'],
+    equivalentes: ['buenos-dias', 'jalon-entre-piernas', 'peso-muerto', 'femoral-acostado', 'femoral-de-pie', 'femoral-sentado'],
     tecnica: 'Rodillas casi rectas y espalda firme. Lleva la cadera atrás bajando las mancuernas por el muslo hasta sentir el estiramiento detrás.',
     svg: svgPesoMuertoRumano,
   },
@@ -1412,6 +1861,396 @@ export const EJERCICIOS = {
     equivalentes: ['abductor'],
     tecnica: 'De pie y apoyado en algo firme. Levanta la pierna hacia el lado sin inclinar el torso, y baja resistiendo el último tramo.',
     svg: svgAbduccionDePie,
+  },
+
+  // ---------- ABDOMEN, PANTORRILLA, TRAPECIO Y VARIANTES ----------
+  'encogimiento': {
+    nombre: 'Encogimiento abdominal',
+    musculo: 'Abdomen',
+    tipo: 'core',
+    grupos: ['abdomen'],
+    patron: 'flexion-tronco',
+    equipo: ['ninguno'],
+    equivalentes: ['abdominal-completo', 'plancha', 'elevacion-piernas', 'encogimiento-en-polea'],
+    tecnica: 'Boca arriba con las rodillas dobladas. Despega sólo los omóplatos llevando las costillas hacia la cadera, sin tirar del cuello.',
+    svg: svgEncogimiento,
+  },
+  'abdominal-completo': {
+    nombre: 'Abdominal completo',
+    musculo: 'Abdomen',
+    tipo: 'core',
+    grupos: ['abdomen'],
+    patron: 'flexion-tronco',
+    equipo: ['ninguno'],
+    equivalentes: ['encogimiento', 'elevacion-piernas', 'encogimiento-en-polea'],
+    tecnica: 'Sube hasta sentarte con la espalda redondeada, no recta. Baja vértebra a vértebra en vez de dejarte caer.',
+    svg: svgAbdominalCompleto,
+  },
+  'elevacion-piernas': {
+    nombre: 'Elevación de piernas colgado',
+    musculo: 'Abdomen bajo',
+    tipo: 'core',
+    grupos: ['abdomen'],
+    patron: 'elevacion-piernas',
+    equipo: ['barra-fija'],
+    equivalentes: ['abdominal-completo', 'bicicleta', 'encogimiento'],
+    tecnica: 'Colgado de la barra, sin balanceo. Sube las piernas llevando la cadera hacia arriba, no sólo los pies, y baja despacio.',
+    svg: svgElevacionPiernas,
+  },
+  'encogimiento-en-polea': {
+    nombre: 'Encogimiento en polea',
+    musculo: 'Abdomen',
+    tipo: 'core',
+    grupos: ['abdomen'],
+    patron: 'flexion-tronco',
+    equipo: ['polea'],
+    equivalentes: ['abdominal-completo', 'encogimiento'],
+    tecnica: 'De rodillas frente a la polea alta, cuerda a los lados de la cabeza. Flexiona el tronco con la cadera quieta; el trabajo no es de brazos.',
+    svg: svgEncogimientoPolea,
+  },
+  'plancha': {
+    nombre: 'Plancha',
+    musculo: 'Abdomen y core',
+    tipo: 'core',
+    grupos: ['abdomen'],
+    patron: 'anti-extension',
+    equipo: ['ninguno'],
+    equivalentes: ['bicicleta', 'encogimiento'],
+    tecnica: 'Antebrazos y puntas de los pies, cuerpo en línea recta. Aprieta glúteo y abdomen para que la cadera no se hunda. Se mide en segundos, no en repeticiones.',
+    svg: svgPlancha,
+  },
+  'giro-ruso': {
+    nombre: 'Giro ruso',
+    musculo: 'Oblicuos',
+    tipo: 'core',
+    grupos: ['abdomen'],
+    patron: 'rotacion-tronco',
+    equipo: ['mancuernas'],
+    equivalentes: ['bicicleta'],
+    tecnica: 'Sentado con el torso inclinado atrás y los pies levantados. Gira llevando el peso de un lado a otro con el movimiento saliendo del tronco.',
+    svg: svgGiroRuso,
+  },
+  'bicicleta': {
+    nombre: 'Bicicleta',
+    musculo: 'Abdomen y oblicuos',
+    tipo: 'core',
+    grupos: ['abdomen'],
+    patron: 'rotacion-tronco',
+    equipo: ['ninguno'],
+    equivalentes: ['plancha', 'giro-ruso', 'elevacion-piernas'],
+    tecnica: 'Boca arriba, lleva el codo hacia la rodilla contraria alternando. Despacio: el chiste es la rotación, no la velocidad.',
+    svg: svgBicicleta,
+  },
+  'talones-mancuerna': {
+    nombre: 'Elevación de talones con mancuerna',
+    musculo: 'Pantorrilla',
+    tipo: 'pierna',
+    grupos: ['pantorrilla'],
+    patron: 'flexion-plantar',
+    equipo: ['mancuernas'],
+    equivalentes: ['talones-de-pie', 'talones-sentado', 'prensa-talones'],
+    tecnica: 'De pie con una mancuerna en la mano, punta del pie en un escalón. Sube lo más alto que puedas y baja hasta estirar. También sirve sin peso.',
+    svg: svgTalonesMancuerna,
+  },
+  'talones-de-pie': {
+    nombre: 'Elevación de talones de pie',
+    musculo: 'Pantorrilla',
+    tipo: 'pierna',
+    grupos: ['pantorrilla'],
+    patron: 'flexion-plantar',
+    equipo: ['maquina'],
+    equivalentes: ['talones-mancuerna', 'talones-sentado', 'prensa-talones'],
+    tecnica: 'Punta del pie en el escalón y talón libre. Sube lo más alto que puedas y baja hasta estirar del todo la pantorrilla.',
+    svg: svgTalonesDePie,
+  },
+  'talones-sentado': {
+    nombre: 'Elevación de talones sentado',
+    musculo: 'Sóleo',
+    tipo: 'pierna',
+    grupos: ['pantorrilla'],
+    patron: 'flexion-plantar',
+    equipo: ['maquina'],
+    equivalentes: ['talones-mancuerna', 'talones-de-pie', 'prensa-talones'],
+    tecnica: 'Sentado con el cojín sobre la rodilla. Al tener la rodilla doblada trabaja más el sóleo, la parte profunda de la pantorrilla.',
+    svg: svgTalonesSentado,
+  },
+  'prensa-talones': {
+    nombre: 'Prensa de talones',
+    musculo: 'Pantorrilla',
+    tipo: 'pierna',
+    grupos: ['pantorrilla'],
+    patron: 'flexion-plantar',
+    equipo: ['maquina'],
+    equivalentes: ['talones-mancuerna', 'talones-de-pie', 'talones-sentado'],
+    tecnica: 'En la prensa, apoya sólo la punta del pie en el borde de la plataforma. Empuja con el pie sin doblar la rodilla.',
+    svg: svgPrensaTalones,
+  },
+  'encogimiento-hombros-barra': {
+    nombre: 'Encogimiento de hombros con barra',
+    musculo: 'Trapecio',
+    tipo: 'tronco-superior',
+    grupos: ['trapecio'],
+    patron: 'encogimiento',
+    equipo: ['barra'],
+    equivalentes: ['encogimiento-hombros-mancuerna', 'encogimiento-hombros-polea', 'remo-vertical-barra'],
+    tecnica: 'Barra colgando con los brazos rectos. Sube los hombros hacia las orejas sin girarlos, y aguanta arriba un segundo.',
+    svg: svgEncogimientoBarra,
+  },
+  'encogimiento-hombros-mancuerna': {
+    nombre: 'Encogimiento de hombros con mancuerna',
+    musculo: 'Trapecio',
+    tipo: 'tronco-superior',
+    grupos: ['trapecio'],
+    patron: 'encogimiento',
+    equipo: ['mancuernas'],
+    equivalentes: ['encogimiento-hombros-barra', 'encogimiento-hombros-polea'],
+    tecnica: 'Una mancuerna a cada lado, brazos rectos. Sube los hombros en vertical; los codos no se doblan en ningún momento.',
+    svg: svgEncogimientoMancuerna,
+  },
+  'encogimiento-hombros-polea': {
+    nombre: 'Encogimiento de hombros en polea',
+    musculo: 'Trapecio',
+    tipo: 'tronco-superior',
+    grupos: ['trapecio'],
+    patron: 'encogimiento',
+    equipo: ['polea'],
+    equivalentes: ['encogimiento-hombros-mancuerna', 'encogimiento-hombros-barra'],
+    tecnica: 'Polea baja, brazos rectos al costado. La tensión constante del cable mantiene el trapecio cargado en todo el recorrido.',
+    svg: svgEncogimientoPoleaTrapecio,
+  },
+  'banco-inclinado-barra': {
+    nombre: 'Banco inclinado con barra',
+    musculo: 'Pecho superior',
+    tipo: 'tronco-superior',
+    grupos: ['pecho'],
+    patron: 'empuje-horizontal',
+    equipo: ['barra', 'banco'],
+    equivalentes: ['flexiones', 'banco-declinado-mancuernas', 'banco-horizontal-mancuernas', 'banco-inclinado-mancuernas', 'fondos-abiertos', 'banco-barra', 'press-pecho-maquina'],
+    tecnica: 'Banco a 30–45° y agarre algo más ancho que los hombros. Baja la barra a la clavícula y empuja sin rebotar en el pecho.',
+    svg: svgBancoInclinadoBarra,
+  },
+  'banco-declinado-mancuernas': {
+    nombre: 'Banco declinado con mancuernas',
+    musculo: 'Pecho inferior',
+    tipo: 'tronco-superior',
+    grupos: ['pecho'],
+    patron: 'empuje-horizontal',
+    equipo: ['mancuernas', 'banco'],
+    equivalentes: ['flexiones', 'banco-horizontal-mancuernas', 'banco-inclinado-mancuernas', 'fondos-abiertos', 'banco-inclinado-barra', 'banco-barra', 'press-pecho-maquina'],
+    tecnica: 'Banco inclinado hacia abajo y piernas bien sujetas. Baja al pecho bajo y empuja; es el ángulo que más carga la parte inferior.',
+    svg: svgBancoDeclinadoMancuernas,
+  },
+  'remo-t': {
+    nombre: 'Remo en T',
+    musculo: 'Espalda media',
+    tipo: 'tronco-superior',
+    grupos: ['espalda'],
+    patron: 'jalon-horizontal',
+    equipo: ['barra'],
+    equivalentes: ['remo-barra', 'remo-mancuerna', 'remo-maquina', 'remo-sentado'],
+    tecnica: 'Barra anclada por un extremo, torso inclinado y espalda recta. Jala al abdomen juntando las escápulas al final.',
+    svg: svgRemoT,
+  },
+  'remo-maquina': {
+    nombre: 'Remo en máquina',
+    musculo: 'Espalda media',
+    tipo: 'tronco-superior',
+    grupos: ['espalda'],
+    patron: 'jalon-horizontal',
+    equipo: ['maquina'],
+    equivalentes: ['remo-barra', 'remo-mancuerna', 'remo-t', 'remo-sentado'],
+    tecnica: 'Pecho apoyado en el cojín para que la espalda baja no trabaje. Jala llevando los codos atrás y junta los omóplatos.',
+    svg: svgRemoMaquina,
+  },
+  'remo-vertical-barra': {
+    nombre: 'Remo vertical con barra',
+    musculo: 'Hombro y trapecio',
+    tipo: 'hombro',
+    grupos: ['hombro', 'trapecio'],
+    patron: 'remo-vertical',
+    equipo: ['barra'],
+    equivalentes: ['laterales-mancuerna', 'encogimiento-hombros-barra'],
+    tecnica: 'Agarre a la anchura de los hombros. Sube la barra guiando con los codos hasta el pecho, sin pasar de la altura de la clavícula.',
+    svg: svgRemoVerticalBarra,
+  },
+  'press-neutro-mancuerna': {
+    nombre: 'Press de hombro neutro',
+    musculo: 'Hombro completo',
+    tipo: 'hombro',
+    grupos: ['hombro'],
+    patron: 'empuje-vertical',
+    equipo: ['mancuernas'],
+    equivalentes: ['press-arnold', 'press-militar', 'press-hombro-maquina'],
+    tecnica: 'De pie, palmas enfrentadas. El agarre neutro es más amable con el hombro que el press clásico; empuja sin arquear la espalda.',
+    svg: svgPressNeutroMancuerna,
+  },
+  'curl-barra-z': {
+    nombre: 'Curl con barra Z',
+    musculo: 'Bíceps',
+    tipo: 'brazo',
+    grupos: ['biceps'],
+    patron: 'flexion-codo',
+    equipo: ['barra-z'],
+    equivalentes: ['curl-mancuerna', 'martillos-mancuerna', 'barra-de-pie', 'curl-inclinado', 'concentrado-polea', 'curl-maquina', 'predicador'],
+    tecnica: 'La barra ondulada deja la muñeca en un ángulo más cómodo. Codos pegados al costado y sin balancear el torso.',
+    svg: svgCurlBarraZ,
+  },
+  'curl-mancuerna': {
+    nombre: 'Curl con mancuerna',
+    musculo: 'Bíceps',
+    tipo: 'brazo',
+    grupos: ['biceps'],
+    patron: 'flexion-codo',
+    equipo: ['mancuernas'],
+    equivalentes: ['martillos-mancuerna', 'barra-de-pie', 'curl-barra-z', 'curl-inclinado', 'concentrado-polea', 'curl-maquina', 'predicador'],
+    tecnica: 'Palmas al frente y codos fijos al costado. Puedes alternar brazos para controlar mejor cada repetición.',
+    svg: svgCurlMancuerna,
+  },
+  'curl-inclinado': {
+    nombre: 'Curl inclinado',
+    musculo: 'Bíceps (cabeza larga)',
+    tipo: 'brazo',
+    grupos: ['biceps'],
+    patron: 'flexion-codo',
+    equipo: ['mancuernas', 'banco'],
+    equivalentes: ['curl-mancuerna', 'martillos-mancuerna', 'barra-de-pie', 'curl-barra-z', 'concentrado-polea', 'curl-maquina', 'predicador'],
+    tecnica: 'Sentado en banco inclinado con los brazos colgando atrás. Ese estiramiento extra es lo que distingue este curl de los demás.',
+    svg: svgCurlInclinado,
+  },
+  'curl-maquina': {
+    nombre: 'Curl en máquina',
+    musculo: 'Bíceps',
+    tipo: 'brazo',
+    grupos: ['biceps'],
+    patron: 'flexion-codo',
+    equipo: ['maquina'],
+    equivalentes: ['curl-mancuerna', 'martillos-mancuerna', 'barra-de-pie', 'curl-barra-z', 'curl-inclinado', 'concentrado-polea', 'predicador'],
+    tecnica: 'Brazos apoyados en el cojín inclinado. La máquina fija el codo por ti, así que no hay forma de hacer trampa con el impulso.',
+    svg: svgCurlMaquina,
+  },
+  'extension-tras-nuca-barra': {
+    nombre: 'Extensión tras nuca con barra',
+    musculo: 'Tríceps (cabeza larga)',
+    tipo: 'brazo',
+    grupos: ['triceps'],
+    patron: 'extension-codo',
+    equipo: ['barra'],
+    equivalentes: ['fondos-banco', 'patada-de-mula', 'cuerda', 'extension-cuerda-tras-nuca', 'jalon-una-mano-supino', 'extension-triceps-maquina', 'fondos-maquina', 'press-cerrado', 'press-frances'],
+    tecnica: 'Barra por detrás de la cabeza y codos apuntando al techo. Estira sin mover el brazo de sitio; sólo gira el codo.',
+    svg: svgExtensionTrasNucaBarra,
+  },
+  'press-cerrado': {
+    nombre: 'Press cerrado',
+    musculo: 'Tríceps',
+    tipo: 'brazo',
+    grupos: ['triceps'],
+    patron: 'extension-codo',
+    equipo: ['barra', 'banco'],
+    equivalentes: ['fondos-banco', 'patada-de-mula', 'cuerda', 'extension-cuerda-tras-nuca', 'extension-tras-nuca-barra', 'jalon-una-mano-supino', 'extension-triceps-maquina', 'fondos-maquina', 'press-frances'],
+    tecnica: 'Agarre a la anchura de los hombros y codos pegados al cuerpo. Baja al esternón y empuja; es press de banca enfocado al tríceps.',
+    svg: svgPressCerrado,
+  },
+  'extension-cuerda-tras-nuca': {
+    nombre: 'Extensión de tríceps tras nuca en polea',
+    musculo: 'Tríceps (cabeza larga)',
+    tipo: 'brazo',
+    grupos: ['triceps'],
+    patron: 'extension-codo',
+    equipo: ['polea'],
+    equivalentes: ['fondos-banco', 'patada-de-mula', 'cuerda', 'extension-tras-nuca-barra', 'jalon-una-mano-supino', 'extension-triceps-maquina', 'fondos-maquina', 'press-cerrado', 'press-frances'],
+    tecnica: 'De espaldas a la polea, cuerda por detrás de la cabeza. Estira al frente con los codos altos y quietos.',
+    svg: svgExtensionCuerdaTrasNuca,
+  },
+  'extension-triceps-maquina': {
+    nombre: 'Extensión de tríceps en máquina',
+    musculo: 'Tríceps',
+    tipo: 'brazo',
+    grupos: ['triceps'],
+    patron: 'extension-codo',
+    equipo: ['maquina'],
+    equivalentes: ['fondos-banco', 'patada-de-mula', 'cuerda', 'extension-cuerda-tras-nuca', 'extension-tras-nuca-barra', 'jalon-una-mano-supino', 'fondos-maquina', 'press-cerrado', 'press-frances'],
+    tecnica: 'Sentado con los brazos apoyados. Empuja abajo estirando el codo por completo y vuelve resistiendo la subida.',
+    svg: svgExtensionTricepsMaquina,
+  },
+  'fondos-maquina': {
+    nombre: 'Fondos en máquina',
+    musculo: 'Tríceps y pecho',
+    tipo: 'brazo',
+    grupos: ['triceps', 'pecho'],
+    patron: 'extension-codo',
+    equipo: ['maquina'],
+    equivalentes: ['fondos-banco', 'patada-de-mula', 'cuerda', 'extension-cuerda-tras-nuca', 'extension-tras-nuca-barra', 'jalon-una-mano-supino', 'extension-triceps-maquina', 'press-cerrado', 'press-frances'],
+    tecnica: 'La máquina asistida te deja hacer fondos con parte de tu peso descargado. Codos cerca del cuerpo para cargar el tríceps.',
+    svg: svgFondosMaquina,
+  },
+  'sentadilla-frontal': {
+    nombre: 'Sentadilla frontal',
+    musculo: 'Cuádriceps',
+    tipo: 'pierna',
+    grupos: ['cuadriceps', 'gluteo'],
+    patron: 'sentadilla',
+    equipo: ['barra'],
+    equivalentes: ['sentadilla-goblet', 'sentadilla', 'prensa'],
+    tecnica: 'Barra apoyada al frente sobre los deltoides, codos altos. Obliga a bajar con el torso muy erguido y carga más el cuádriceps.',
+    svg: svgSentadillaFrontal,
+  },
+  'desplante-barra': {
+    nombre: 'Desplante con barra',
+    musculo: 'Cuádriceps y glúteo',
+    tipo: 'pierna',
+    grupos: ['cuadriceps', 'gluteo'],
+    patron: 'zancada',
+    equipo: ['barra'],
+    equivalentes: ['desplante-caminando', 'sentadilla-china', 'subida-al-cajon', 'desplante-smith'],
+    tecnica: 'Barra en los trapecios. Da un paso al frente y baja en vertical hasta que la rodilla trasera casi toque el piso.',
+    svg: svgDesplanteBarra,
+  },
+
+  'buenos-dias': {
+    nombre: 'Buenos días',
+    musculo: 'Isquiotibiales y lumbar',
+    tipo: 'pierna',
+    grupos: ['femoral', 'gluteo'],
+    patron: 'bisagra',
+    equipo: ['barra'],
+    equivalentes: ['peso-muerto-rumano', 'jalon-entre-piernas', 'peso-muerto'],
+    tecnica: 'Barra en la espalda y rodillas casi rectas. Inclina el torso llevando la cadera atrás, con la espalda recta todo el rato. Empieza ligero.',
+    svg: svgBuenosDias,
+  },
+  'jalon-entre-piernas': {
+    nombre: 'Jalón entre piernas en polea',
+    musculo: 'Glúteo e isquiotibiales',
+    tipo: 'pierna',
+    grupos: ['gluteo', 'femoral'],
+    patron: 'bisagra',
+    equipo: ['polea'],
+    equivalentes: ['peso-muerto-rumano', 'buenos-dias', 'peso-muerto'],
+    tecnica: 'De espaldas a la polea baja, cuerda entre las piernas. Lleva la cadera atrás y vuelve empujándola al frente apretando el glúteo.',
+    svg: svgJalonEntrePiernas,
+  },
+  'subida-al-cajon': {
+    nombre: 'Subida al cajón',
+    musculo: 'Glúteo y cuádriceps',
+    tipo: 'pierna',
+    grupos: ['gluteo', 'cuadriceps'],
+    patron: 'zancada',
+    equipo: ['cajon', 'mancuernas'],
+    equivalentes: ['desplante-caminando', 'desplante-barra', 'sentadilla-china', 'desplante-smith'],
+    unilateral: true,
+    tecnica: 'Sube empujando con el talón de la pierna que está arriba, sin impulsarte con la de abajo. Baja controlando en vez de dejarte caer.',
+    svg: svgSubidaAlCajon,
+  },
+  'aduccion-banda': {
+    nombre: 'Aducción con banda',
+    musculo: 'Aductores',
+    tipo: 'pierna',
+    grupos: ['aductores'],
+    patron: 'aduccion',
+    equipo: ['banda'],
+    equivalentes: ['aductor'],
+    unilateral: true,
+    tecnica: 'Banda atada a un punto fijo y al tobillo. Lleva la pierna hacia dentro cruzando ligeramente, con el torso quieto.',
+    svg: svgAduccionBanda,
   },
 };
 
