@@ -1,5 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.58.0';
-import { DIBUJOS, urlVideo } from './rutina.js?v=202609172300';
+import { DIBUJOS, urlVideo } from './rutina.js?v=202609172305';
 
 // ------------------------------------------------------------
 //  Conexión. Esta llave es pública por diseño: lo que protege
@@ -281,6 +281,12 @@ async function cargarPerfil() {
     const { data: e } = await sb.from('profiles').select('id, nombre').eq('id', mio.entrenador_id).maybeSingle();
     if (e) estado.entrenador = e;
   }
+}
+
+// Cuánta gente tiene una rutina que yo armé
+function repartoTexto(rutinaId) {
+  const n = estado.repartoRutinas?.[rutinaId] || 0;
+  return n === 0 ? 'sin asignar' : n === 1 ? 'la tiene 1 persona' : `la tienen ${n} personas`;
 }
 
 function pintarTiraEntrenador() {
@@ -840,9 +846,29 @@ async function cargarCatalogo() {
   const porId = {};
   (defs || []).forEach((r) => { porId[r.id] = r; estado.rutinas[r.id] ||= r; });
 
+  // Las que yo armé salen aunque no se las haya dado a nadie: si no,
+  // quedan invisibles y ni siquiera se pueden modificar o borrar.
+  const { data: mias_creadas } = await sb
+    .from('rutinas').select('id, nombre, creada, creador_id')
+    .eq('creador_id', estado.usuario.id);
+  const asignadas = new Set(mias.map((m) => m.rutina_id));
+  const sueltas = (mias_creadas || []).filter((r) => !asignadas.has(r.id));
+  sueltas.forEach((r) => { porId[r.id] = r; estado.rutinas[r.id] ||= r; });
+
+  // A cuánta gente le di cada rutina que armé. Cuenta lo que alcanzo a
+  // ver: yo mismo y mis alumnos.
+  const cuantos = {};
+  if ((mias_creadas || []).length) {
+    const { data: reparto } = await sb.from('rutinas_usuario')
+      .select('rutina_id').in('rutina_id', mias_creadas.map((r) => r.id));
+    (reparto || []).forEach((x) => { cuantos[x.rutina_id] = (cuantos[x.rutina_id] || 0) + 1; });
+  }
+  estado.repartoRutinas = cuantos;
+
   estado.catalogo = mias
     .map((m) => ({ ...m, def: porId[m.rutina_id] }))
     .filter((m) => m.def)
+    .concat(sueltas.map((r) => ({ rutina_id: r.id, activa: false, def: r })))
     .sort((a, b) => String(b.def.creada).localeCompare(String(a.def.creada)));
 
   $('#nombre-usuario').textContent = estado.nombre || 'atleta';
@@ -855,7 +881,8 @@ async function cargarCatalogo() {
           </span>
           <span class="rutina-info">
             <h3>${m.def.nombre}${m.activa ? '<span class="insignia-activa">activa</span>' : ''}</h3>
-            <p>Creada el ${fechaLarga(m.def.creada)}</p>
+            <p>Creada el ${fechaLarga(m.def.creada)}${
+              m.def.creador_id === estado.usuario.id ? ' · ' + repartoTexto(m.rutina_id) : ''}</p>
           </span>
           <span class="rutina-flecha">
             <svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
