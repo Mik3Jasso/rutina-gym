@@ -35,7 +35,14 @@ pensada para ir en el navegador. Lo que protege los datos es RLS.
 
 ## Base de datos de ejercicios
 
-`js/rutina.js` contiene 88 ejercicios. Cada uno lleva, además de su nombre,
+Los ejercicios y las rutinas viven en la base de datos. En `js/rutina.js`
+quedan sólo los **dibujos**: 112 KB de arte estático que el navegador
+cachea y que no tiene sentido descargar del servidor en cada visita. La
+columna `ejercicios.dibujo` apunta a la entrada del mapa `DIBUJOS`; un
+ejercicio creado por un entrenador la deja vacía y se muestra sin
+ilustración.
+
+La base contiene 88 ejercicios. Cada uno lleva, además de su nombre,
 ilustración y notas de técnica:
 
 | Campo | Para qué |

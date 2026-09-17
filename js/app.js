@@ -1,5 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.58.0';
-import { SERIES, EJERCICIOS, RUTINAS, rutinaPorId, urlVideo } from './rutina.js';
+import { SERIES, DIBUJOS, urlVideo } from './rutina.js';
 
 // ------------------------------------------------------------
 //  Conexión. Esta llave es pública por diseño: lo que protege
@@ -36,7 +36,7 @@ function ubicacionGuardada() {
   }
   if (!marca) return null;
   const [rutinaId, dia] = marca.split('/');
-  if (!rutinaPorId(rutinaId)) return null;
+  if (!rutinaId) return null;
   const n = Number(dia);
   return { rutinaId, dia: n >= 1 && n <= 5 ? n : null };
 }
@@ -45,8 +45,10 @@ const CLAVE_BORRADOR = 'rutina:borrador';
 const estado = {
   usuario: null,
   nombre: '',
-  rutina: null,      // rutina abierta del catálogo
+  rutina: null,      // rutina abierta, ya con sus días cargados
   catalogo: [],      // rutinas del usuario, con cuál está activa
+  ejercicios: {},    // catálogo completo, traído de la base
+  rutinas: {},       // definición de cada rutina disponible
   dia: null,        // día abierto
   sesionId: null,
   registros: {},    // "slug:serie" -> {peso, reps, hecho} (lo que se ve)
@@ -245,6 +247,51 @@ $('#btn-menu').addEventListener('click', async () => {
 });
 
 // ============================================================
+//  El catálogo vive en la base. Aquí sólo se le pega el dibujo,
+//  que sigue en el código. Un ejercicio creado por un entrenador
+//  no tiene dibujo y se queda sin ilustración a propósito.
+// ============================================================
+async function cargarEjercicios() {
+  const { data, error } = await sb
+    .from('ejercicios')
+    .select('id, nombre, musculo, tipo, grupos, patron, equipo, unilateral, tecnica, dibujo');
+  if (error) throw error;
+  estado.ejercicios = {};
+  (data || []).forEach((e) => {
+    estado.ejercicios[e.id] = { ...e, svg: (e.dibujo && DIBUJOS[e.dibujo]) || null };
+  });
+}
+
+// Los días de una rutina, con sus superseries reconstruidas
+async function cargarDefinicionRutina(rutinaId) {
+  if (estado.rutinas[rutinaId]?.dias) return estado.rutinas[rutinaId];
+
+  const { data: cab, error: e1 } = await sb
+    .from('rutinas').select('id, nombre, creada').eq('id', rutinaId).maybeSingle();
+  if (e1 || !cab) return null;
+
+  const { data: dias, error: e2 } = await sb
+    .from('rutina_dias')
+    .select('id, dia, nombre, tono, rutina_ejercicios(bloque, orden, ejercicio_id, series)')
+    .eq('rutina_id', rutinaId)
+    .order('dia');
+  if (e2) return null;
+
+  cab.dias = (dias || []).map((d) => {
+    const porBloque = {};
+    (d.rutina_ejercicios || [])
+      .sort((a, b) => a.bloque - b.bloque || a.orden - b.orden)
+      .forEach((re) => { (porBloque[re.bloque] ||= []).push(re.ejercicio_id); });
+    return {
+      dia: d.dia, nombre: d.nombre, tono: d.tono,
+      bloques: Object.keys(porBloque).sort((a, b) => a - b).map((k) => porBloque[k]),
+    };
+  });
+  estado.rutinas[rutinaId] = cab;
+  return cab;
+}
+
+// ============================================================
 //  Catálogo de rutinas
 // ============================================================
 async function cargarCatalogo() {
@@ -258,8 +305,9 @@ async function cargarCatalogo() {
   let mias = data || [];
 
   // Las rutinas marcadas por defecto entran solas en el catálogo de quien no las tenga
-  const faltan = RUTINAS.filter(
-    (r) => r.porDefecto && !mias.some((m) => m.rutina_id === r.id));
+  const { data: porDefecto } = await sb
+    .from('rutinas').select('id').eq('por_defecto', true);
+  const faltan = (porDefecto || []).filter((r) => !mias.some((m) => m.rutina_id === r.id));
   if (faltan.length) {
     const nuevas = faltan.map((r, i) => ({
       user_id: estado.usuario.id,
@@ -271,10 +319,16 @@ async function cargarCatalogo() {
   }
 
   // Sólo las que existen en el código, y con la definición al lado
+  const { data: defs } = await sb
+    .from('rutinas').select('id, nombre, creada')
+    .in('id', mias.length ? mias.map((m) => m.rutina_id) : ['']);
+  const porId = {};
+  (defs || []).forEach((r) => { porId[r.id] = r; estado.rutinas[r.id] ||= r; });
+
   estado.catalogo = mias
-    .map((m) => ({ ...m, def: rutinaPorId(m.rutina_id) }))
+    .map((m) => ({ ...m, def: porId[m.rutina_id] }))
     .filter((m) => m.def)
-    .sort((a, b) => b.def.creada.localeCompare(a.def.creada));
+    .sort((a, b) => String(b.def.creada).localeCompare(String(a.def.creada)));
 
   $('#nombre-usuario').textContent = estado.nombre || 'atleta';
   $('#lista-rutinas').innerHTML = estado.catalogo.length
@@ -301,8 +355,8 @@ async function cargarCatalogo() {
 }
 
 async function abrirRutina(rutinaId) {
-  const def = rutinaPorId(rutinaId);
-  if (!def) return;
+  const def = await cargarDefinicionRutina(rutinaId);
+  if (!def) { avisar('No se pudo abrir la rutina', true); return; }
   estado.rutina = def;
 
   // Abrir una rutina la vuelve la activa
@@ -356,11 +410,10 @@ async function cargarInicio() {
     const fecha = estado.ultimasFechas[d.dia];
     const esHoy = fecha && diasDesde(fecha) === 0;
     const terminadoHoy = esHoy && cerradas[d.dia];
-    const sub = d.listo
-      ? `${d.bloques.length * 2} ejercicios · ${relativo(fecha)}`
-      : d.vista;
+    const n = d.bloques.reduce((t, b) => t + b.length, 0);
+    const sub = `${n} ${n === 1 ? 'ejercicio' : 'ejercicios'} · ${relativo(fecha)}`;
     return `
-      <button class="tarjeta-dia" data-dia="${d.dia}" ${d.listo ? '' : 'disabled style="opacity:.5"'}>
+      <button class="tarjeta-dia" data-dia="${d.dia}">
         <span class="dia-num" style="--tono:${d.tono};--tono-suave:${d.tono}22">${d.dia}</span>
         <span class="dia-info">
           <h3>${d.nombre}${terminadoHoy
@@ -368,13 +421,13 @@ async function cargarInicio() {
             : esHoy ? '<span class="insignia-hoy">hoy</span>' : ''}</h3>
           <p>${sub}</p>
         </span>
-        <span class="dia-flecha">${d.listo
-          ? '<svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>'
-          : '<span class="pastilla">pronto</span>'}</span>
+        <span class="dia-flecha">
+          <svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </span>
       </button>`;
   }).join('');
 
-  $('#lista-dias').querySelectorAll('.tarjeta-dia:not([disabled])').forEach((b) => {
+  $('#lista-dias').querySelectorAll('.tarjeta-dia').forEach((b) => {
     b.addEventListener('click', () => abrirDia(Number(b.dataset.dia)));
   });
 
@@ -387,7 +440,7 @@ async function cargarInicio() {
 // ============================================================
 async function abrirDia(numDia) {
   const dia = estado.rutina.dias.find((d) => d.dia === numDia);
-  if (!dia || !dia.listo) return;
+  if (!dia) return;
   estado.dia = dia;
   estado.fecha = hoy();
 
@@ -552,7 +605,7 @@ function pintarBloques() {
 }
 
 function tarjetaEjercicio(slug) {
-  const ej = EJERCICIOS[slug];
+  const ej = estado.ejercicios[slug];
   const hechas = SERIES.filter((_, i) => estado.registros[`${slug}:${i + 1}`]?.hecho).length;
   const completo = hechas === SERIES.length;
 
@@ -944,7 +997,7 @@ function mostrarResumen() {
     const hechas = SERIES.filter((_, i) => estado.registros[`${s}:${i + 1}`]?.hecho).length;
     const pesos = SERIES.map((_, i) => estado.registros[`${s}:${i + 1}`])
       .filter((r) => r?.hecho && r.peso != null).map((r) => nDecimal(r.peso));
-    return `<li><span style="color:var(--texto)">${EJERCICIOS[s].nombre}</span>
+    return `<li><span style="color:var(--texto)">${estado.ejercicios[s].nombre}</span>
       <span>${hechas ? pesos.join(' · ') + ' kg' : '—'}</span></li>`;
   }).join('');
 
@@ -984,7 +1037,7 @@ $('#btn-reabrir').addEventListener('click', reabrirRutina);
 //  Historial por ejercicio
 // ============================================================
 async function abrirHistorial(slug) {
-  const ej = EJERCICIOS[slug];
+  const ej = estado.ejercicios[slug];
   $('#hoja-titulo').textContent = ej.nombre;
   $('#hoja-cuerpo').innerHTML = '<p class="vacio">Cargando…</p>';
   $('#hoja').classList.remove('oculto');
@@ -1090,6 +1143,14 @@ async function arrancar() {
   estado.usuario = session.user;
   const { data: perfil } = await sb.from('profiles').select('nombre').eq('id', session.user.id).maybeSingle();
   estado.nombre = perfil?.nombre || session.user.email.split('@')[0];
+
+  try {
+    await cargarEjercicios();
+  } catch {
+    $('#cargando').classList.remove('oculto');
+    mostrarFallo(arrancar, 'No se pudo cargar el catálogo de ejercicios.');
+    return;
+  }
 
   // Leerlo ANTES: cargar el catálogo borra la ubicación guardada.
   const dondeEstaba = ubicacionGuardada();
