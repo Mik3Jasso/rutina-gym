@@ -762,3 +762,11 @@ input{font-family:inherit}
   display:grid;place-items:center;font-size:10px;color:var(--muted-2);
   text-transform:uppercase;letter-spacing:.05em;
 }
+
+.tarjeta-rutina + .btn-editar-rutina{
+  width:100%;margin-top:-6px;padding:9px;border-radius:0 0 12px 12px;
+  background:var(--surface-2);color:var(--muted);
+  font-size:13px;font-weight:600;transition:color .15s,background .15s;
+}
+.tarjeta-rutina + .btn-editar-rutina:hover{background:var(--borde);color:var(--texto)}
+.lista-rutinas .btn-editar-rutina{margin-bottom:4px}

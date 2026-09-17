@@ -1,5 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.58.0';
-import { DIBUJOS, urlVideo } from './rutina.js?v=202609172210';
+import { DIBUJOS, urlVideo } from './rutina.js?v=202609172300';
 
 // ------------------------------------------------------------
 //  Conexión. Esta llave es pública por diseño: lo que protege
@@ -434,13 +434,39 @@ alPulsar('#btn-volver-catalogo', cargarCatalogo);
 //  Constructor de rutinas
 // ============================================================
 function nuevaRutina() {
+  estado.editor = { id: null, nombre: '', dias: [{ nombre: '', ejercicios: [] }], asignar: new Set() };
+  abrirEditor('Rutina nueva');
+}
+
+// Modificar una rutina que ya existe: se carga tal cual está y al
+// guardar se reescriben sus días.
+async function editarRutina(rutinaId) {
+  const def = await cargarDefinicionRutina(rutinaId);
+  if (!def?.dias) { avisar('No se pudo abrir la rutina', true); return; }
+
+  const { data: asignada } = await sb.from('rutinas_usuario')
+    .select('user_id').eq('rutina_id', rutinaId);
+
   estado.editor = {
-    nombre: '',
-    dias: [{ nombre: '', ejercicios: [] }],
-    asignar: new Set(),
+    id: rutinaId,
+    nombre: def.nombre,
+    dias: def.dias.map((d) => ({
+      nombre: d.nombre,
+      ejercicios: d.bloques.flatMap((bloque, bi) =>
+        bloque.map((e, ei) => ({ id: e.id, series: [...e.series], juntoAlAnterior: ei > 0 }))),
+    })),
+    asignar: new Set((asignada || []).map((a) => a.user_id)),
   };
-  $('#in-nombre-rutina').value = '';
+  abrirEditor(def.nombre);
+}
+
+function abrirEditor(titulo) {
+  const ed = estado.editor;
+  $('#in-nombre-rutina').value = ed.nombre || '';
+  $('#editor-titulo').textContent = titulo;
   $('#editor-nota').textContent = '';
+  $('#btn-publicar-rutina').textContent = ed.id ? 'Guardar cambios' : 'Guardar rutina';
+  $('#btn-borrar-rutina').classList.toggle('oculto', !ed.id);
   pintarEditor();
   mostrarVista('#vista-editor');
 }
@@ -636,20 +662,29 @@ async function guardarRutina() {
   if (vacios) { nota.textContent = 'Hay días sin ejercicios. Quítalos o agrégales algo.'; return; }
 
   btn.disabled = true; btn.textContent = 'Guardando…'; nota.textContent = '';
-  const id = nombre.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+  const id = ed.id || nombre.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
     .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 30)
     + '-' + Math.random().toString(36).slice(2, 7);
+  const rutinaId = ed.id || id;
 
   try {
-    const { error: e1 } = await sb.from('rutinas').insert({
-      id, nombre, creador_id: estado.usuario.id, por_defecto: false,
-    });
-    if (e1) throw e1;
+    if (ed.id) {
+      const { error: eN } = await sb.from('rutinas').update({ nombre }).eq('id', ed.id);
+      if (eN) throw eN;
+      // Reescribir los días: al borrarlos se van sus ejercicios en cascada
+      const { error: eB } = await sb.from('rutina_dias').delete().eq('rutina_id', ed.id);
+      if (eB) throw eB;
+    } else {
+      const { error: e1 } = await sb.from('rutinas').insert({
+        id, nombre, creador_id: estado.usuario.id, por_defecto: false,
+      });
+      if (e1) throw e1;
+    }
 
     for (let i = 0; i < ed.dias.length; i++) {
       const d = ed.dias[i];
       const { data: dia, error: e2 } = await sb.from('rutina_dias')
-        .insert({ rutina_id: id, dia: i + 1, nombre: d.nombre.trim() || `Día ${i + 1}` })
+        .insert({ rutina_id: rutinaId, dia: i + 1, nombre: d.nombre.trim() || `Día ${i + 1}` })
         .select('id').single();
       if (e2) throw e2;
 
@@ -671,19 +706,52 @@ async function guardarRutina() {
     }
 
     if (ed.asignar.size) {
-      const { error: e4 } = await sb.from('rutinas_usuario').insert(
-        [...ed.asignar].map((uid) => ({ user_id: uid, rutina_id: id, activa: false })));
+      // upsert: al modificar, quien ya la tenía no se duplica
+      const { error: e4 } = await sb.from('rutinas_usuario').upsert(
+        [...ed.asignar].map((uid) => ({ user_id: uid, rutina_id: rutinaId, activa: false })),
+        { onConflict: 'user_id,rutina_id', ignoreDuplicates: true });
       if (e4) throw e4;
     }
 
     estado.editor = null;
     estado.rutinas = {};
-    avisar('Rutina guardada');
+    avisar(ed.id ? 'Cambios guardados' : 'Rutina guardada');
     await cargarCatalogo();
   } catch (err) {
     nota.textContent = 'No se pudo guardar. Revisa tu conexión e inténtalo otra vez.';
   } finally {
-    btn.disabled = false; btn.textContent = 'Guardar rutina';
+    btn.disabled = false;
+    btn.textContent = ed.id ? 'Guardar cambios' : 'Guardar rutina';
+  }
+}
+
+// --- borrar ---
+alPulsar('#btn-borrar-rutina', borrarRutina);
+
+async function borrarRutina() {
+  const ed = estado.editor;
+  if (!ed?.id) return;
+  const btn = $('#btn-borrar-rutina');
+  const nota = $('#editor-nota');
+
+  if (!confirm(`Vas a eliminar «${ed.nombre}».\n\nDesaparecerá del catálogo de quien la tenga. Esto no se puede deshacer.`)) return;
+
+  btn.disabled = true; btn.textContent = 'Eliminando…'; nota.textContent = '';
+  try {
+    const { error } = await sb.from('rutinas').delete().eq('id', ed.id);
+    if (error) throw error;
+    estado.editor = null;
+    estado.rutinas = {};
+    avisar('Rutina eliminada');
+    await cargarCatalogo();
+  } catch (err) {
+    // La base impide borrar una rutina con entrenamientos: perdería el historial
+    const m = (err?.message || '').toLowerCase();
+    nota.textContent = m.includes('foreign key') || m.includes('viola')
+      ? 'No se puede eliminar: ya hay entrenamientos registrados con ella y se perdería ese historial. Puedes modificarla en vez de borrarla.'
+      : 'No se pudo eliminar. Revisa tu conexión.';
+  } finally {
+    btn.disabled = false; btn.textContent = 'Eliminar rutina';
   }
 }
 
@@ -767,7 +835,7 @@ async function cargarCatalogo() {
 
   // Sólo las que existen en el código, y con la definición al lado
   const { data: defs } = await sb
-    .from('rutinas').select('id, nombre, creada')
+    .from('rutinas').select('id, nombre, creada, creador_id')
     .in('id', mias.length ? mias.map((m) => m.rutina_id) : ['']);
   const porId = {};
   (defs || []).forEach((r) => { porId[r.id] = r; estado.rutinas[r.id] ||= r; });
@@ -792,11 +860,16 @@ async function cargarCatalogo() {
           <span class="rutina-flecha">
             <svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </span>
-        </button>`).join('')
+        </button>
+        ${m.def.creador_id === estado.usuario.id
+          ? `<button class="btn-editar-rutina" data-editar="${m.rutina_id}">Modificar</button>` : ''}`).join('')
     : '<p class="catalogo-vacio">Todavía no tienes ninguna rutina en tu catálogo.</p>';
 
   $('#lista-rutinas').querySelectorAll('.tarjeta-rutina').forEach((b) => {
     b.addEventListener('click', () => abrirRutina(b.dataset.rutina));
+  });
+  $('#lista-rutinas').querySelectorAll('[data-editar]').forEach((b) => {
+    b.addEventListener('click', () => editarRutina(b.dataset.editar));
   });
 
   mostrarVista('#vista-catalogo');
