@@ -105,14 +105,18 @@ ejercicios se toman de `EJERCICIOS` y los que falten se dibujan en el
 mismo archivo. Una rutina con `porDefecto: true` aparece sola en el
 catálogo de cualquiera que entre.
 
-Para dársela sólo a ciertas personas, se deja `porDefecto: false` y se
-insertan las filas correspondientes en `rutinas_usuario`.
+## Series y repeticiones
 
-## La rutina
+Cada ejercicio lleva su propio esquema en `rutina_ejercicios.series`: uno
+puede ser 5×5, otro de tres series y otro de seis, en la misma rutina y
+el mismo día. El número de serie en `series_log` no tiene tope superior.
+
+## La rutina del entrenador
 
 4 series por ejercicio — 15 / 12 / 10 / 8 repeticiones, subiendo el peso
-en cada serie. Los ejercicios van en superserie por parejas. Cardio de
-20 a 30 minutos después de las pesas.
+en cada serie. Es uno de los esquemas posibles, no una suposición de la
+app. Los ejercicios van en superserie por parejas. Cardio de 20 a 30
+minutos después de las pesas.
 
 1. **Pecho** — banco inclinado/pull over · banco horizontal/cross over · cristos/fondos abiertos
 2. **Cuádriceps** — sentadilla/extensiones · prensa/aductor · extensión unilateral/desplante en Smith
