@@ -13,7 +13,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=202609172202">
+<link rel="stylesheet" href="css/styles.css?v=202609172210">
 </head>
 <body>
 
@@ -81,6 +81,7 @@
 
   <h2 class="titulo-seccion">Tus rutinas</h2>
   <div id="lista-rutinas" class="lista-rutinas"></div>
+  <button id="btn-nueva-rutina" class="btn-agregar oculto">+ Armar una rutina</button>
 
 </section>
 
@@ -99,6 +100,35 @@
   <div id="lista-alumnos" class="lista-alumnos"></div>
 
   <p class="pie-nota">Comparte tu código para que se unan más personas.</p>
+</section>
+
+<!-- ============ CONSTRUCTOR DE RUTINAS ============ -->
+<section id="vista-editor" class="vista oculto">
+  <header class="cabecera">
+    <button id="btn-cancelar-editor" class="btn-icono" aria-label="Cancelar">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+    <div style="flex:1;min-width:0">
+      <p class="saludo">Armando</p>
+      <h1 id="editor-titulo">Rutina nueva</h1>
+    </div>
+  </header>
+
+  <label class="campo">
+    <span>Nombre de la rutina</span>
+    <input id="in-nombre-rutina" placeholder="Por ejemplo: Fuerza · octubre" autocomplete="off">
+  </label>
+
+  <h2 class="titulo-seccion">Días</h2>
+  <div id="editor-dias" class="editor-dias"></div>
+  <button id="btn-agregar-dia" class="btn-agregar">+ Agregar día</button>
+
+  <h2 class="titulo-seccion" style="margin-top:28px">Asignar a</h2>
+  <div id="editor-asignar" class="editor-asignar"></div>
+
+  <button id="btn-publicar-rutina" class="btn-primario" style="margin-top:22px">Guardar rutina</button>
+  <p id="editor-nota" class="finalizar-nota"></p>
+  <div class="espacio-inferior"></div>
 </section>
 
 <!-- ============ RUTINA: SUS DÍAS ============ -->
@@ -203,6 +233,6 @@
   <button id="fallo-cerrar" class="fallo-cerrar" aria-label="Cerrar aviso">✕</button>
 </div>
 
-<script type="module" src="js/app.js?v=202609172202"></script>
+<script type="module" src="js/app.js?v=202609172210"></script>
 </body>
 </html>

@@ -662,3 +662,103 @@ input{font-family:inherit}
 .alumno-info{flex:1;min-width:0}
 .alumno-info h3{font-size:16.5px;margin:0 0 2px}
 .alumno-info p{margin:0;font-size:13px;color:var(--muted)}
+
+/* ============ CONSTRUCTOR DE RUTINAS ============ */
+.btn-agregar{
+  width:100%;padding:13px;border-radius:12px;margin-top:10px;
+  background:var(--surface);border:1.5px dashed var(--borde);
+  color:var(--muted);font-size:14.5px;font-weight:600;transition:all .15s;
+}
+.btn-agregar:hover{border-color:var(--acento);color:var(--acento)}
+
+.editor-dias{display:flex;flex-direction:column;gap:14px}
+.dia-editor{
+  background:var(--surface);border:1px solid var(--borde);
+  border-radius:var(--radio);overflow:hidden;
+}
+.dia-editor-cab{
+  display:flex;align-items:center;gap:10px;
+  padding:12px 14px;background:var(--surface-2);border-bottom:1px solid var(--borde);
+}
+.dia-editor-cab .num{
+  width:26px;height:26px;flex:none;border-radius:8px;display:grid;place-items:center;
+  background:var(--acento-suave);color:var(--acento);
+  font-family:"Barlow Condensed",Inter,sans-serif;font-size:15px;font-weight:700;
+}
+.dia-editor-cab input{
+  flex:1;min-width:0;background:transparent;border:none;outline:none;
+  color:var(--texto);font-size:15.5px;font-weight:600;padding:4px 0;
+}
+.dia-editor-cab input::placeholder{color:var(--muted-2);font-weight:400}
+.btn-quitar{
+  flex:none;width:30px;height:30px;border-radius:8px;color:var(--muted-2);
+  font-size:16px;line-height:1;
+}
+.btn-quitar:hover{background:rgba(255,77,77,.12);color:var(--peligro)}
+
+.ej-editor{padding:12px 14px;border-bottom:1px solid var(--borde)}
+.ej-editor:last-of-type{border-bottom:none}
+.ej-editor.enlazado{border-left:3px solid var(--acento);padding-left:11px}
+.ej-editor-cab{display:flex;align-items:center;gap:10px;margin-bottom:9px}
+.ej-editor-cab b{flex:1;min-width:0;font-size:14.5px;font-weight:600}
+.ej-editor-cab small{font-size:11.5px;color:var(--muted)}
+
+.series-editor{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.series-editor input{
+  width:46px;padding:7px 4px;text-align:center;font-size:14px;font-weight:600;
+  background:var(--surface-2);color:var(--texto);
+  border:1.5px solid transparent;border-radius:8px;outline:none;
+}
+.series-editor input:focus{border-color:var(--acento);background:var(--bg)}
+.series-editor input::-webkit-outer-spin-button,
+.series-editor input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.series-editor button{
+  width:30px;height:30px;border-radius:8px;background:var(--surface-2);
+  color:var(--muted);font-size:16px;line-height:1;font-weight:600;
+}
+.series-editor button:hover{background:var(--borde);color:var(--texto)}
+.series-editor .etiqueta{
+  font-size:11px;color:var(--tenue,var(--muted-2));text-transform:uppercase;
+  letter-spacing:.06em;font-weight:600;margin-right:2px;
+}
+
+.enlace-superserie{
+  display:flex;align-items:center;gap:7px;margin-top:9px;
+  font-size:12.5px;color:var(--muted);cursor:pointer;
+}
+.enlace-superserie input{accent-color:var(--acento);width:15px;height:15px}
+
+.editor-asignar{display:flex;flex-direction:column;gap:8px}
+.chip-alumno{
+  display:flex;align-items:center;gap:11px;padding:13px 15px;border-radius:12px;
+  background:var(--surface);border:1.5px solid var(--borde);
+  font-size:15px;transition:border-color .15s;cursor:pointer;
+}
+.chip-alumno input{accent-color:var(--acento);width:18px;height:18px;flex:none}
+.chip-alumno.marcado{border-color:var(--acento)}
+.chip-alumno span{flex:1;min-width:0}
+.chip-alumno small{color:var(--muted);font-size:12.5px}
+
+/* buscador de ejercicios */
+.buscador{margin-bottom:14px}
+.buscador input{
+  width:100%;padding:12px 14px;font-size:15.5px;
+  background:var(--surface-2);color:var(--texto);
+  border:1.5px solid var(--borde);border-radius:11px;outline:none;
+}
+.buscador input:focus{border-color:var(--acento)}
+.resultados{max-height:46vh;overflow-y:auto;margin:0 -4px;padding:0 4px}
+.resultado{
+  display:flex;align-items:center;gap:12px;width:100%;text-align:left;
+  padding:11px 10px;border-radius:10px;
+}
+.resultado:hover{background:var(--surface-2)}
+.resultado .mini{width:44px;height:34px;flex:none;border-radius:7px;background:var(--surface-2);overflow:hidden}
+.resultado .mini svg{width:100%;height:100%;display:block}
+.resultado div{flex:1;min-width:0}
+.resultado b{display:block;font-size:14.5px;font-weight:600}
+.resultado small{font-size:12px;color:var(--muted)}
+.sin-dibujo{
+  display:grid;place-items:center;font-size:10px;color:var(--muted-2);
+  text-transform:uppercase;letter-spacing:.05em;
+}

@@ -1,5 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.58.0';
-import { DIBUJOS, urlVideo } from './rutina.js?v=202609172202';
+import { DIBUJOS, urlVideo } from './rutina.js?v=202609172210';
 
 // ------------------------------------------------------------
 //  Conexión. Esta llave es pública por diseño: lo que protege
@@ -60,6 +60,7 @@ const estado = {
   perfil: null,      // mi perfil: si soy entrenador y con qué código
   entrenador: null,  // quién me entrena, si alguien lo hace
   alumnos: [],       // a quién entreno yo
+  editor: null,      // rutina que se está armando
   rutinas: {},       // definición de cada rutina disponible
   dia: null,        // día abierto
   sesionId: null,
@@ -268,6 +269,13 @@ async function cargarPerfil() {
   const mio = (vinculos || []).find((v) => v.alumno_id === estado.usuario.id);
   estado.alumnos = (vinculos || []).filter((v) => v.entrenador_id === estado.usuario.id);
 
+  estado.perfilesAlumnos = {};
+  if (estado.alumnos.length) {
+    const { data: ps } = await sb.from('profiles').select('id, nombre')
+      .in('id', estado.alumnos.map((a) => a.alumno_id));
+    (ps || []).forEach((p) => { estado.perfilesAlumnos[p.id] = p; });
+  }
+
   estado.entrenador = null;
   if (mio) {
     const { data: e } = await sb.from('profiles').select('id, nombre').eq('id', mio.entrenador_id).maybeSingle();
@@ -292,9 +300,11 @@ function pintarTiraEntrenador() {
       <button data-ver-alumnos>Ver</button>`;
     tira.classList.remove('oculto');
     tira.querySelector('[data-ver-alumnos]').addEventListener('click', abrirAlumnos);
+    $('#btn-nueva-rutina')?.classList.remove('oculto');
   } else {
     tira.classList.add('oculto');
   }
+  $('#btn-nueva-rutina')?.classList.toggle('oculto', !estado.perfil?.es_entrenador);
 }
 
 // ------------------------------------------------------------
@@ -308,6 +318,8 @@ function abrirMenu() {
            <span>Comparte este código para que se unan a ti</span></div>
          <button class="menu-boton" data-alumnos>Mis alumnos
            <small>${estado.alumnos.length}</small></button>
+         <button class="menu-boton" data-nueva-rutina>Armar una rutina
+           <small>nueva</small></button>
        </div>`
     : '';
 
@@ -331,6 +343,9 @@ function abrirMenu() {
     </div>`;
   $('#hoja').classList.remove('oculto');
 
+  $('#hoja-cuerpo').querySelector('[data-nueva-rutina]')?.addEventListener('click', () => {
+    $('#hoja').classList.add('oculto'); nuevaRutina();
+  });
   $('#hoja-cuerpo').querySelector('[data-alumnos]')?.addEventListener('click', () => {
     $('#hoja').classList.add('oculto'); abrirAlumnos();
   });
@@ -414,6 +429,263 @@ async function abrirAlumnos() {
 }
 
 alPulsar('#btn-volver-catalogo', cargarCatalogo);
+
+// ============================================================
+//  Constructor de rutinas
+// ============================================================
+function nuevaRutina() {
+  estado.editor = {
+    nombre: '',
+    dias: [{ nombre: '', ejercicios: [] }],
+    asignar: new Set(),
+  };
+  $('#in-nombre-rutina').value = '';
+  $('#editor-nota').textContent = '';
+  pintarEditor();
+  mostrarVista('#vista-editor');
+}
+
+function pintarEditor() {
+  const ed = estado.editor;
+
+  $('#editor-dias').innerHTML = ed.dias.map((d, di) => `
+    <section class="dia-editor" data-dia="${di}">
+      <div class="dia-editor-cab">
+        <span class="num">${di + 1}</span>
+        <input value="${(d.nombre || '').replace(/"/g, '&quot;')}"
+               placeholder="Nombre del día (pecho, pierna…)"
+               data-nombre-dia="${di}" aria-label="Nombre del día ${di + 1}">
+        <button class="btn-quitar" data-quitar-dia="${di}" aria-label="Quitar día">✕</button>
+      </div>
+      ${d.ejercicios.map((e, ei) => tarjetaEjercicioEditor(di, ei, e)).join('')
+        || '<p class="vacio" style="padding:18px 0">Sin ejercicios todavía</p>'}
+      <div style="padding:12px 14px">
+        <button class="btn-agregar" data-agregar-ej="${di}" style="margin:0">+ Agregar ejercicio</button>
+      </div>
+    </section>`).join('');
+
+  const n = estado.alumnos.length;
+  $('#editor-asignar').innerHTML = n
+    ? estado.alumnos.map((a) => {
+        const p = estado.perfilesAlumnos?.[a.alumno_id];
+        const marcado = ed.asignar.has(a.alumno_id);
+        return `<label class="chip-alumno ${marcado ? 'marcado' : ''}">
+          <input type="checkbox" data-asignar="${a.alumno_id}" ${marcado ? 'checked' : ''}>
+          <span>${p?.nombre || 'Alumno'}</span>
+        </label>`;
+      }).join('') +
+      `<label class="chip-alumno ${ed.asignar.has(estado.usuario.id) ? 'marcado' : ''}">
+         <input type="checkbox" data-asignar="${estado.usuario.id}"
+                ${ed.asignar.has(estado.usuario.id) ? 'checked' : ''}>
+         <span>Para mí <small>· también la entreno yo</small></span>
+       </label>`
+    : '<p class="vacio">Todavía no tienes alumnos. Puedes guardarla y asignarla después.</p>';
+}
+
+function tarjetaEjercicioEditor(di, ei, e) {
+  const ej = estado.ejercicios[e.id];
+  const series = e.series;
+  return `
+    <div class="ej-editor ${e.juntoAlAnterior ? 'enlazado' : ''}">
+      <div class="ej-editor-cab">
+        <b>${ej?.nombre || e.id}</b>
+        <small>${ej?.musculo || ''}</small>
+        <button class="btn-quitar" data-quitar-ej="${di}.${ei}" aria-label="Quitar ejercicio">✕</button>
+      </div>
+      <div class="series-editor">
+        <span class="etiqueta">Reps</span>
+        ${series.map((reps, si) => `
+          <input type="number" inputmode="numeric" min="1" max="999" value="${reps}"
+                 data-reps="${di}.${ei}.${si}" aria-label="Repeticiones de la serie ${si + 1}">`).join('')}
+        <button data-menos-serie="${di}.${ei}" aria-label="Quitar una serie">−</button>
+        <button data-mas-serie="${di}.${ei}" aria-label="Agregar una serie">+</button>
+      </div>
+      ${ei > 0 ? `
+        <label class="enlace-superserie">
+          <input type="checkbox" data-enlazar="${di}.${ei}" ${e.juntoAlAnterior ? 'checked' : ''}>
+          En superserie con el anterior
+        </label>` : ''}
+    </div>`;
+}
+
+// --- interacción del editor ---
+$('#editor-dias')?.addEventListener('click', (e) => {
+  const ed = estado.editor; if (!ed) return;
+  const q = (a) => e.target.closest(`[${a}]`)?.getAttribute(a);
+  const quitarDia = q('data-quitar-dia');
+  if (quitarDia !== undefined && quitarDia !== null) {
+    if (ed.dias.length === 1) { avisar('La rutina necesita al menos un día', true); return; }
+    ed.dias.splice(Number(quitarDia), 1); pintarEditor(); return;
+  }
+  const agregar = q('data-agregar-ej');
+  if (agregar !== undefined && agregar !== null) { abrirBuscador(Number(agregar)); return; }
+
+  const quitarEj = q('data-quitar-ej');
+  if (quitarEj) {
+    const [di, ei] = quitarEj.split('.').map(Number);
+    ed.dias[di].ejercicios.splice(ei, 1);
+    if (ed.dias[di].ejercicios[0]) ed.dias[di].ejercicios[0].juntoAlAnterior = false;
+    pintarEditor(); return;
+  }
+  const mas = q('data-mas-serie');
+  if (mas) {
+    const [di, ei] = mas.split('.').map(Number);
+    const ser = ed.dias[di].ejercicios[ei].series;
+    ser.push(ser[ser.length - 1] || 10);
+    pintarEditor(); return;
+  }
+  const menos = q('data-menos-serie');
+  if (menos) {
+    const [di, ei] = menos.split('.').map(Number);
+    const ser = ed.dias[di].ejercicios[ei].series;
+    if (ser.length === 1) { avisar('Un ejercicio necesita al menos una serie', true); return; }
+    ser.pop(); pintarEditor(); return;
+  }
+});
+
+$('#editor-dias')?.addEventListener('input', (e) => {
+  const ed = estado.editor; if (!ed) return;
+  const nombreDia = e.target.getAttribute('data-nombre-dia');
+  if (nombreDia !== null) { ed.dias[Number(nombreDia)].nombre = e.target.value; return; }
+  const reps = e.target.getAttribute('data-reps');
+  if (reps !== null) {
+    const [di, ei, si] = reps.split('.').map(Number);
+    const v = Number(e.target.value);
+    if (v > 0) ed.dias[di].ejercicios[ei].series[si] = v;
+  }
+});
+
+$('#editor-dias')?.addEventListener('change', (e) => {
+  const ed = estado.editor; if (!ed) return;
+  const enlazar = e.target.getAttribute('data-enlazar');
+  if (enlazar !== null) {
+    const [di, ei] = enlazar.split('.').map(Number);
+    ed.dias[di].ejercicios[ei].juntoAlAnterior = e.target.checked;
+    pintarEditor();
+  }
+});
+
+$('#editor-asignar')?.addEventListener('change', (e) => {
+  const id = e.target.getAttribute('data-asignar');
+  if (!id) return;
+  if (e.target.checked) estado.editor.asignar.add(id);
+  else estado.editor.asignar.delete(id);
+  e.target.closest('.chip-alumno')?.classList.toggle('marcado', e.target.checked);
+});
+
+alPulsar('#btn-nueva-rutina', nuevaRutina);
+alPulsar('#btn-agregar-dia', () => {
+  estado.editor.dias.push({ nombre: '', ejercicios: [] });
+  pintarEditor();
+});
+alPulsar('#btn-cancelar-editor', () => {
+  if (confirm('¿Descartar esta rutina?')) { estado.editor = null; cargarCatalogo(); }
+});
+$('#in-nombre-rutina')?.addEventListener('input', (e) => {
+  estado.editor.nombre = e.target.value;
+  $('#editor-titulo').textContent = e.target.value.trim() || 'Rutina nueva';
+});
+
+// --- buscador de ejercicios ---
+function abrirBuscador(di) {
+  $('#hoja-titulo').textContent = 'Agregar ejercicio';
+  $('#hoja-cuerpo').innerHTML = `
+    <div class="buscador">
+      <input id="in-buscar" placeholder="Buscar por nombre, músculo o equipo" autocomplete="off">
+    </div>
+    <div class="resultados" id="resultados"></div>`;
+  $('#hoja').classList.remove('oculto');
+  const pintar = (texto) => {
+    const t = (texto || '').toLowerCase().trim();
+    const lista = Object.values(estado.ejercicios)
+      .filter((e) => !t || [e.nombre, e.musculo, e.tipo, ...(e.equipo || [])]
+        .join(' ').toLowerCase().includes(t))
+      .sort((a, b) => a.nombre.localeCompare(b.nombre))
+      .slice(0, 60);
+    $('#resultados').innerHTML = lista.length
+      ? lista.map((e) => `
+        <button class="resultado" data-elegir="${e.id}">
+          <span class="mini">${e.svg || '<span class="sin-dibujo">sin<br>dibujo</span>'}</span>
+          <div><b>${e.nombre}</b><small>${e.musculo} · ${(e.equipo || []).join(' + ')}</small></div>
+        </button>`).join('')
+      : '<p class="vacio">Ningún ejercicio coincide.</p>';
+  };
+  pintar('');
+  $('#in-buscar').addEventListener('input', (e) => pintar(e.target.value));
+  $('#resultados').addEventListener('click', (e) => {
+    const id = e.target.closest('[data-elegir]')?.getAttribute('data-elegir');
+    if (!id) return;
+    estado.editor.dias[di].ejercicios.push({ id, series: [15, 12, 10, 8], juntoAlAnterior: false });
+    $('#hoja').classList.add('oculto');
+    pintarEditor();
+  });
+  setTimeout(() => $('#in-buscar')?.focus(), 120);
+}
+
+// --- guardar ---
+alPulsar('#btn-publicar-rutina', guardarRutina);
+
+async function guardarRutina() {
+  const ed = estado.editor;
+  const btn = $('#btn-publicar-rutina');
+  const nota = $('#editor-nota');
+
+  const nombre = (ed.nombre || '').trim();
+  if (!nombre) { nota.textContent = 'Ponle un nombre a la rutina.'; return; }
+  const vacios = ed.dias.filter((d) => !d.ejercicios.length).length;
+  if (vacios) { nota.textContent = 'Hay días sin ejercicios. Quítalos o agrégales algo.'; return; }
+
+  btn.disabled = true; btn.textContent = 'Guardando…'; nota.textContent = '';
+  const id = nombre.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 30)
+    + '-' + Math.random().toString(36).slice(2, 7);
+
+  try {
+    const { error: e1 } = await sb.from('rutinas').insert({
+      id, nombre, creador_id: estado.usuario.id, por_defecto: false,
+    });
+    if (e1) throw e1;
+
+    for (let i = 0; i < ed.dias.length; i++) {
+      const d = ed.dias[i];
+      const { data: dia, error: e2 } = await sb.from('rutina_dias')
+        .insert({ rutina_id: id, dia: i + 1, nombre: d.nombre.trim() || `Día ${i + 1}` })
+        .select('id').single();
+      if (e2) throw e2;
+
+      // Cada ejercicio abre un bloque nuevo salvo que vaya en superserie
+      // con el anterior; dentro del bloque, el orden en que se agregaron.
+      let bloque = 0;
+      const enBloque = {};
+      const filas = d.ejercicios.map((e, ei) => {
+        if (ei === 0 || !e.juntoAlAnterior) bloque++;
+        enBloque[bloque] = (enBloque[bloque] || 0) + 1;
+        return {
+          dia_id: dia.id, bloque, orden: enBloque[bloque],
+          ejercicio_id: e.id, series: e.series,
+        };
+      });
+
+      const { error: e3 } = await sb.from('rutina_ejercicios').insert(filas);
+      if (e3) throw e3;
+    }
+
+    if (ed.asignar.size) {
+      const { error: e4 } = await sb.from('rutinas_usuario').insert(
+        [...ed.asignar].map((uid) => ({ user_id: uid, rutina_id: id, activa: false })));
+      if (e4) throw e4;
+    }
+
+    estado.editor = null;
+    estado.rutinas = {};
+    avisar('Rutina guardada');
+    await cargarCatalogo();
+  } catch (err) {
+    nota.textContent = 'No se pudo guardar. Revisa tu conexión e inténtalo otra vez.';
+  } finally {
+    btn.disabled = false; btn.textContent = 'Guardar rutina';
+  }
+}
 
 // ============================================================
 //  El catálogo vive en la base. Aquí sólo se le pega el dibujo,
@@ -532,7 +804,12 @@ async function cargarCatalogo() {
 
 async function abrirRutina(rutinaId) {
   const def = await cargarDefinicionRutina(rutinaId);
-  if (!def) { avisar('No se pudo abrir la rutina', true); return; }
+  if (!def?.dias) {
+    estado.rutina = null;
+    recordarUbicacion(null);
+    avisar('No se pudo abrir la rutina', true);
+    return;
+  }
   estado.rutina = def;
 
   // Abrir una rutina la vuelve la activa
@@ -616,6 +893,7 @@ async function cargarInicio() {
 //  Vista de un día
 // ============================================================
 async function abrirDia(numDia) {
+  if (!estado.rutina?.dias) return;
   const dia = estado.rutina.dias.find((d) => d.dia === numDia);
   if (!dia) return;
   estado.dia = dia;
@@ -1347,7 +1625,9 @@ async function arrancar() {
 
   if (dondeEstaba) {
     await abrirRutina(dondeEstaba.rutinaId);
-    if (dondeEstaba.dia) await abrirDia(dondeEstaba.dia);
+    // Si la rutina guardada ya no carga, abrirRutina se rinde y hay que
+    // quedarse en el catálogo en vez de intentar abrir un día de nada.
+    if (dondeEstaba.dia && estado.rutina) await abrirDia(dondeEstaba.dia);
   }
 }
 
