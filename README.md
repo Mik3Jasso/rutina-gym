@@ -60,9 +60,27 @@ entrena pero forman parte de cualquier gimnasio.
 
 Las listas de `equivalentes` se generaron uniendo los ejercicios que
 comparten patrón de movimiento y músculo, más algunos enlaces a mano
-donde el mismo patrón sólo existe en máquina. Van ordenadas poniendo
-delante lo que menos equipo exige, y son recíprocas: si A sustituye a B,
-B sustituye a A.
+donde el mismo patrón sólo existe en máquina. Son recíprocas: si A
+sustituye a B, B sustituye a A.
+
+El orden responde a una pregunta concreta: *la máquina está ocupada,
+¿qué puedo hacer ahora mismo?* Por eso no ordena por "cuánto equipo
+pide" sino por qué tan seguro es encontrarlo libre en un gimnasio:
+
+| | |
+|---|---|
+| Tu propio peso | siempre |
+| Barra, mancuernas, disco, banco, barra Z | zona de peso libre, siempre hay |
+| Polea, barra fija, barras paralelas | hay, pero pocas estaciones |
+| Máquina, Smith, banda, cajón | estación concreta, o no todos los gyms la tienen |
+
+Una barra cuenta como más disponible que una máquina: en un gimnasio
+siempre hay barras, y la máquina concreta que buscas es justo lo que
+puede estar ocupado.
+
+Tres patrones existen **sólo** en máquina y no tienen sustituto directo:
+extensión de rodilla, flexión de rodilla y aducción. Llevan enlace a
+mano hacia ejercicios que trabajan el mismo músculo con otro patrón.
 
 ## Agregar una rutina nueva
 
