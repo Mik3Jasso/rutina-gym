@@ -14,6 +14,15 @@ const sb = createClient(SUPABASE_URL, SUPABASE_KEY, {
 
 const $ = (s) => document.querySelector(s);
 
+// Registrar escuchas sin reventar si el elemento no está. Pasa cuando el
+// navegador sirve un index.html cacheado viejo junto a un app.js nuevo:
+// sin esto, un solo elemento ausente aborta el módulo y la app no carga.
+const alPulsar = (sel, fn, evento = 'click') => {
+  const el = document.querySelector(sel);
+  if (el) el.addEventListener(evento, fn);
+  else console.warn('Falta en el HTML:', sel);
+};
+
 // El día abierto queda en la URL y en la sesión del navegador: si el
 // teléfono descarta la página al cambiar de app, volvemos donde estabas.
 const CLAVE_UBICACION = 'rutina:dia';
@@ -48,6 +57,9 @@ const estado = {
   rutina: null,      // rutina abierta, ya con sus días cargados
   catalogo: [],      // rutinas del usuario, con cuál está activa
   ejercicios: {},    // catálogo completo, traído de la base
+  perfil: null,      // mi perfil: si soy entrenador y con qué código
+  entrenador: null,  // quién me entrena, si alguien lo hace
+  alumnos: [],       // a quién entreno yo
   rutinas: {},       // definición de cada rutina disponible
   dia: null,        // día abierto
   sesionId: null,
@@ -189,7 +201,7 @@ document.querySelectorAll('.tab').forEach((t) => {
   });
 });
 
-$('#form-auth').addEventListener('submit', async (e) => {
+$('#form-auth')?.addEventListener('submit', async (e) => {
   e.preventDefault();
   const correo = $('#in-correo').value.trim();
   const clave = $('#in-clave').value;
@@ -239,12 +251,175 @@ $('#form-auth').addEventListener('submit', async (e) => {
   }
 });
 
-$('#btn-menu').addEventListener('click', async () => {
-  if (confirm('¿Cerrar sesión?')) {
+alPulsar('#btn-menu', abrirMenu);
+
+// ============================================================
+//  Entrenador y alumnos
+// ============================================================
+async function cargarPerfil() {
+  const { data } = await sb
+    .from('profiles').select('nombre, es_entrenador, codigo')
+    .eq('id', estado.usuario.id).maybeSingle();
+  estado.perfil = data || { nombre: '', es_entrenador: false, codigo: null };
+  estado.nombre = estado.perfil.nombre || estado.usuario.email.split('@')[0];
+
+  // Quién me entrena y a quién entreno yo
+  const { data: vinculos } = await sb.from('alumnos').select('entrenador_id, alumno_id');
+  const mio = (vinculos || []).find((v) => v.alumno_id === estado.usuario.id);
+  estado.alumnos = (vinculos || []).filter((v) => v.entrenador_id === estado.usuario.id);
+
+  estado.entrenador = null;
+  if (mio) {
+    const { data: e } = await sb.from('profiles').select('id, nombre').eq('id', mio.entrenador_id).maybeSingle();
+    if (e) estado.entrenador = e;
+  }
+}
+
+function pintarTiraEntrenador() {
+  const tira = $('#aviso-entrenador');
+  if (estado.entrenador) {
+    tira.innerHTML = `
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 12a4 4 0 100-8 4 4 0 000 8zM4 20a8 8 0 0116 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      <div><b>Te entrena ${estado.entrenador.nombre}</b>
+      <span>Las rutinas que te asigne aparecen aquí</span></div>`;
+    tira.classList.remove('oculto');
+  } else if (estado.perfil?.es_entrenador) {
+    const n = estado.alumnos.length;
+    tira.innerHTML = `
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 12a4 4 0 100-8 4 4 0 000 8zM4 20a8 8 0 0116 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      <div><b>Entrenas a ${n} ${n === 1 ? 'persona' : 'personas'}</b>
+      <span>Tu código: ${estado.perfil.codigo}</span></div>
+      <button data-ver-alumnos>Ver</button>`;
+    tira.classList.remove('oculto');
+    tira.querySelector('[data-ver-alumnos]').addEventListener('click', abrirAlumnos);
+  } else {
+    tira.classList.add('oculto');
+  }
+}
+
+// ------------------------------------------------------------
+//  Menú
+// ------------------------------------------------------------
+function abrirMenu() {
+  const p = estado.perfil || {};
+  const entrenadorHTML = p.es_entrenador
+    ? `<div class="codigo-caja"><b>${p.codigo}</b>
+         <span>Comparte este código para que se unan a ti</span></div>
+       <button class="menu-boton" data-alumnos>Mis alumnos
+         <small>${estado.alumnos.length}</small></button>`
+    : `<button class="menu-boton" data-activar>Quiero entrenar a otras personas
+         <small>Genera tu código</small></button>`;
+
+  const miEntrenador = estado.entrenador
+    ? `<p style="margin:0;font-size:15px">Te entrena <b>${estado.entrenador.nombre}</b>.</p>`
+    : `<div class="fila-codigo">
+         <input id="in-codigo" maxlength="6" placeholder="CÓDIGO" autocomplete="off"
+                aria-label="Código de tu entrenador">
+         <button id="btn-unirme">Unirme</button>
+       </div>
+       <p id="error-codigo" class="error oculto" style="margin:10px 0 0"></p>`;
+
+  $('#hoja-titulo').textContent = estado.nombre;
+  $('#hoja-cuerpo').innerHTML = `
+    <div class="menu-seccion"><h3>Como entrenador</h3>${entrenadorHTML}</div>
+    <div class="menu-seccion"><h3>Tu entrenador</h3>${miEntrenador}</div>
+    <div class="menu-seccion">
+      <button class="menu-boton peligro" data-salir>Cerrar sesión</button>
+    </div>`;
+  $('#hoja').classList.remove('oculto');
+
+  $('#hoja-cuerpo').querySelector('[data-activar]')?.addEventListener('click', activarEntrenador);
+  $('#hoja-cuerpo').querySelector('[data-alumnos]')?.addEventListener('click', () => {
+    $('#hoja').classList.add('oculto'); abrirAlumnos();
+  });
+  $('#hoja-cuerpo').querySelector('#btn-unirme')?.addEventListener('click', unirme);
+  $('#hoja-cuerpo').querySelector('[data-salir]')?.addEventListener('click', async () => {
+    if (!confirm('¿Cerrar sesión?')) return;
     await sb.auth.signOut();
     location.reload();
+  });
+}
+
+async function activarEntrenador() {
+  const { data, error } = await sb.rpc('activar_entrenador');
+  if (error) { mostrarFallo(activarEntrenador, 'No se pudo activar tu código.'); return; }
+  estado.perfil.es_entrenador = true;
+  estado.perfil.codigo = data;
+  pintarTiraEntrenador();
+  abrirMenu();
+  avisar('Tu código es ' + data);
+}
+
+async function unirme() {
+  const campo = $('#in-codigo');
+  const err = $('#error-codigo');
+  const codigo = (campo.value || '').trim();
+  if (codigo.length < 4) { err.textContent = 'Escribe el código que te dieron.'; err.classList.remove('oculto'); return; }
+
+  const { data, error } = await sb.rpc('unirse_con_codigo', { p_codigo: codigo });
+  if (error) {
+    const m = (error.message || '').toLowerCase();
+    err.textContent = m.includes('codigo_propio') ? 'Ese es tu propio código.'
+                    : m.includes('codigo_invalido') ? 'Ese código no corresponde a ningún entrenador.'
+                    : 'No se pudo unir. Revisa tu conexión.';
+    err.classList.remove('oculto');
+    return;
   }
-});
+  const e = Array.isArray(data) ? data[0] : data;
+  estado.entrenador = { id: e.entrenador, nombre: e.nombre };
+  $('#hoja').classList.add('oculto');
+  pintarTiraEntrenador();
+  await cargarCatalogo();
+  avisar('Ahora te entrena ' + e.nombre);
+}
+
+// ------------------------------------------------------------
+//  Lista de alumnos
+// ------------------------------------------------------------
+async function abrirAlumnos() {
+  mostrarVista('#vista-alumnos');
+  $('#lista-alumnos').innerHTML = '<p class="vacio">Cargando…</p>';
+
+  // Releer los vínculos: alguien pudo unirse con el código mientras
+  // la app estaba abierta, y la lista tiene que reflejarlo.
+  const { data: vinculos } = await sb.from('alumnos').select('entrenador_id, alumno_id');
+  estado.alumnos = (vinculos || []).filter((v) => v.entrenador_id === estado.usuario.id);
+  pintarTiraEntrenador();
+
+  const ids = estado.alumnos.map((a) => a.alumno_id);
+  $('#cuenta-alumnos').textContent =
+    ids.length + (ids.length === 1 ? ' persona' : ' personas');
+  if (!ids.length) {
+    $('#lista-alumnos').innerHTML =
+      '<p class="catalogo-vacio">Nadie se ha unido todavía.<br>Comparte tu código: <b>' +
+      (estado.perfil?.codigo || '') + '</b></p>';
+    return;
+  }
+
+  const { data: perfiles } = await sb.from('profiles').select('id, nombre').in('id', ids);
+  const { data: ses } = await sb.from('sesiones').select('user_id, fecha').in('user_id', ids);
+
+  const porUsuario = {};
+  (ses || []).forEach((x) => {
+    const u = (porUsuario[x.user_id] ||= { n: 0, ultima: null });
+    u.n++;
+    if (!u.ultima || x.fecha > u.ultima) u.ultima = x.fecha;
+  });
+
+  $('#lista-alumnos').innerHTML = (perfiles || []).map((p) => {
+    const d = porUsuario[p.id] || { n: 0, ultima: null };
+    return `
+      <div class="tarjeta-alumno">
+        <span class="inicial">${(p.nombre || '?').charAt(0).toUpperCase()}</span>
+        <span class="alumno-info">
+          <h3>${p.nombre}</h3>
+          <p>${d.n} ${d.n === 1 ? 'entrenamiento' : 'entrenamientos'} · ${relativo(d.ultima)}</p>
+        </span>
+      </div>`;
+  }).join('');
+}
+
+alPulsar('#btn-volver-catalogo', cargarCatalogo);
 
 // ============================================================
 //  El catálogo vive en la base. Aquí sólo se le pega el dibujo,
@@ -331,6 +506,7 @@ async function cargarCatalogo() {
     .sort((a, b) => String(b.def.creada).localeCompare(String(a.def.creada)));
 
   $('#nombre-usuario').textContent = estado.nombre || 'atleta';
+  pintarTiraEntrenador();
   $('#lista-rutinas').innerHTML = estado.catalogo.length
     ? estado.catalogo.map((m) => `
         <button class="tarjeta-rutina ${m.activa ? 'activa' : ''}" data-rutina="${m.rutina_id}">
@@ -373,7 +549,7 @@ async function abrirRutina(rutinaId) {
   await cargarInicio();
 }
 
-$('#btn-catalogo').addEventListener('click', cargarCatalogo);
+alPulsar('#btn-catalogo', cargarCatalogo);
 
 // ============================================================
 //  Días de la rutina abierta
@@ -549,7 +725,7 @@ async function cargarSesion() {
 }
 
 // Cambiar de fecha dentro del mismo día
-$('#fechas').addEventListener('click', (e) => {
+alPulsar('#fechas', (e) => {
   const chip = e.target.closest('.chip-fecha');
   if (!chip || chip.dataset.fecha === estado.fecha) return;
   if (document.querySelectorAll('#lista-bloques tr.pendiente').length &&
@@ -590,7 +766,7 @@ async function borrarSesion() {
   }
 }
 
-$('#btn-borrar-sesion').addEventListener('click', borrarSesion);
+alPulsar('#btn-borrar-sesion', borrarSesion);
 
 function pintarBloques() {
   const dia = estado.dia;
@@ -676,7 +852,7 @@ function tarjetaEjercicio(slug) {
 }
 
 // ---- interacción dentro del día (delegación de eventos) ----
-$('#lista-bloques').addEventListener('click', (e) => {
+alPulsar('#lista-bloques', (e) => {
   const cab = e.target.closest('[data-abrir]');
   if (cab) {
     cab.parentElement.classList.toggle('abierto');
@@ -696,7 +872,7 @@ $('#lista-bloques').addEventListener('click', (e) => {
 
 // Escribir no toca la red: solo actualiza el borrador local y marca
 // la fila como pendiente de guardar.
-$('#lista-bloques').addEventListener('input', (e) => {
+$('#lista-bloques')?.addEventListener('input', (e) => {
   const inp = e.target.closest('.in-num');
   if (!inp) return;
   const valor = inp.value === '' ? null : Number(inp.value);
@@ -729,13 +905,13 @@ $('#lista-bloques').addEventListener('input', (e) => {
   pintarFinalizacion();
 });
 
-$('#btn-volver').addEventListener('click', () => {
+alPulsar('#btn-volver', () => {
   document.documentElement.style.setProperty('--acento', '#ff6b35');
   recordarUbicacion(estado.rutina.id);
   cargarInicio();
 });
 
-$('#btn-cardio').addEventListener('click', async () => {
+$('#btn-cardio')?.addEventListener('click', async () => {
   const nuevo = !estado.cardio;
   $('#btn-cardio').setAttribute('aria-pressed', String(nuevo));
   try {
@@ -750,12 +926,12 @@ $('#btn-cardio').addEventListener('click', async () => {
   }
 });
 
-$('#fallo-reintentar').addEventListener('click', () => {
+$('#fallo-reintentar')?.addEventListener('click', () => {
   const accion = reintento;
   ocultarFallo();
   if (accion) accion();
 });
-$('#fallo-cerrar').addEventListener('click', ocultarFallo);
+alPulsar('#fallo-cerrar', ocultarFallo);
 
 // ============================================================
 //  Guardado
@@ -1030,8 +1206,8 @@ async function reabrirRutina() {
   }
 }
 
-$('#btn-finalizar').addEventListener('click', finalizarRutina);
-$('#btn-reabrir').addEventListener('click', reabrirRutina);
+alPulsar('#btn-finalizar', finalizarRutina);
+alPulsar('#btn-reabrir', reabrirRutina);
 
 // ============================================================
 //  Historial por ejercicio
@@ -1074,7 +1250,7 @@ async function abrirHistorial(slug) {
     }).join('');
 }
 
-$('#hoja').addEventListener('click', (e) => {
+alPulsar('#hoja', (e) => {
   if (e.target.dataset.cerrarHoja !== undefined) $('#hoja').classList.add('oculto');
 });
 
@@ -1122,9 +1298,9 @@ function sonar() {
   } catch {}
 }
 
-$('#temp-mas').addEventListener('click', () => { tempRestante += 15; pintarTemp(); });
-$('#temp-menos').addEventListener('click', () => { tempRestante = Math.max(0, tempRestante - 15); pintarTemp(); });
-$('#temp-cerrar').addEventListener('click', () => {
+$('#temp-mas')?.addEventListener('click', () => { tempRestante += 15; pintarTemp(); });
+$('#temp-menos')?.addEventListener('click', () => { tempRestante = Math.max(0, tempRestante - 15); pintarTemp(); });
+alPulsar('#temp-cerrar', () => {
   clearInterval(tempInt);
   $('#temporizador').classList.add('oculto');
 });
@@ -1141,8 +1317,7 @@ async function arrancar() {
   if (!session) { mostrarVista('#vista-auth'); return; }
 
   estado.usuario = session.user;
-  const { data: perfil } = await sb.from('profiles').select('nombre').eq('id', session.user.id).maybeSingle();
-  estado.nombre = perfil?.nombre || session.user.email.split('@')[0];
+  await cargarPerfil();
 
   try {
     await cargarEjercicios();

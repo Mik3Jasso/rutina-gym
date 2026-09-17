@@ -29,6 +29,9 @@ pensada para ir en el navegador. Lo que protege los datos es RLS.
 |---|---|
 | `profiles` | Nombre de cada usuario, creado automáticamente al registrarse |
 | `rutinas_usuario` | Qué rutinas tiene cada persona en su catálogo y cuál usa ahora |
+| `alumnos` | Quién entrena a quién |
+| `ejercicios` | Catálogo: 88 del sistema más los que cree cada entrenador |
+| `rutinas`, `rutina_dias`, `rutina_ejercicios` | Las rutinas y su contenido |
 | `sesiones` | Un entrenamiento: rutina, día, fecha y si se hizo el cardio |
 | `series_log` | Peso, repeticiones y check de cada serie |
 | `ultimo_registro` | Vista: último peso usado en cada ejercicio y serie |
@@ -122,3 +125,19 @@ en cada serie. Los ejercicios van en superserie por parejas. Cardio de
     python3 -m http.server 8000
 
 Y abrir http://localhost:8000
+
+## Entrenadores y alumnos
+
+Una misma cuenta puede entrenar y ser entrenada. `activar_entrenador()`
+marca el perfil y genera un código de seis caracteres de un alfabeto sin
+`O/0` ni `I/L/1`, para que se pueda dictar por teléfono.
+`unirse_con_codigo()` crea el vínculo.
+
+Ambas funciones son `SECURITY DEFINER` porque el alumno todavía no puede
+leer el perfil del entrenador cuando escribe el código. Sacan la
+identidad de `auth.uid()`, nunca de un parámetro.
+
+La tabla `alumnos` **no tiene política de inserción**: el único camino
+para crear un vínculo es la función, que exige conocer el código. Un
+entrenador puede leer perfiles, sesiones, series y catálogo de sus
+alumnos, y de nadie más; no puede modificar nada de ellos.

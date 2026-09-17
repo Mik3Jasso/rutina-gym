@@ -77,10 +77,29 @@
     </button>
   </header>
 
+  <div id="aviso-entrenador" class="tira-entrenador oculto"></div>
+
   <h2 class="titulo-seccion">Tus rutinas</h2>
   <div id="lista-rutinas" class="lista-rutinas"></div>
 
   <p class="pie-nota">¿Tu entrenador te dio una rutina nueva?<br>Pásamela y la agrego a tu catálogo.</p>
+</section>
+
+<!-- ============ ALUMNOS DEL ENTRENADOR ============ -->
+<section id="vista-alumnos" class="vista oculto">
+  <header class="cabecera">
+    <button id="btn-volver-catalogo" class="btn-icono" aria-label="Volver">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+    <div style="flex:1;min-width:0">
+      <p class="saludo">Entrenas a</p>
+      <h1 id="cuenta-alumnos">—</h1>
+    </div>
+  </header>
+
+  <div id="lista-alumnos" class="lista-alumnos"></div>
+
+  <p class="pie-nota">Comparte tu código para que se unan más personas.</p>
 </section>
 
 <!-- ============ RUTINA: SUS DÍAS ============ -->
