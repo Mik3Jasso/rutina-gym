@@ -302,13 +302,14 @@ function pintarTiraEntrenador() {
 // ------------------------------------------------------------
 function abrirMenu() {
   const p = estado.perfil || {};
-  const entrenadorHTML = p.es_entrenador
-    ? `<div class="codigo-caja"><b>${p.codigo}</b>
-         <span>Comparte este código para que se unan a ti</span></div>
-       <button class="menu-boton" data-alumnos>Mis alumnos
-         <small>${estado.alumnos.length}</small></button>`
-    : `<button class="menu-boton" data-activar>Quiero entrenar a otras personas
-         <small>Genera tu código</small></button>`;
+  const seccionEntrenador = p.es_entrenador
+    ? `<div class="menu-seccion"><h3>Como entrenador</h3>
+         <div class="codigo-caja"><b>${p.codigo}</b>
+           <span>Comparte este código para que se unan a ti</span></div>
+         <button class="menu-boton" data-alumnos>Mis alumnos
+           <small>${estado.alumnos.length}</small></button>
+       </div>`
+    : '';
 
   const miEntrenador = estado.entrenador
     ? `<p style="margin:0;font-size:15px">Te entrena <b>${estado.entrenador.nombre}</b>.</p>`
@@ -321,14 +322,13 @@ function abrirMenu() {
 
   $('#hoja-titulo').textContent = estado.nombre;
   $('#hoja-cuerpo').innerHTML = `
-    <div class="menu-seccion"><h3>Como entrenador</h3>${entrenadorHTML}</div>
+    ${seccionEntrenador}
     <div class="menu-seccion"><h3>Tu entrenador</h3>${miEntrenador}</div>
     <div class="menu-seccion">
       <button class="menu-boton peligro" data-salir>Cerrar sesión</button>
     </div>`;
   $('#hoja').classList.remove('oculto');
 
-  $('#hoja-cuerpo').querySelector('[data-activar]')?.addEventListener('click', activarEntrenador);
   $('#hoja-cuerpo').querySelector('[data-alumnos]')?.addEventListener('click', () => {
     $('#hoja').classList.add('oculto'); abrirAlumnos();
   });
@@ -340,15 +340,6 @@ function abrirMenu() {
   });
 }
 
-async function activarEntrenador() {
-  const { data, error } = await sb.rpc('activar_entrenador');
-  if (error) { mostrarFallo(activarEntrenador, 'No se pudo activar tu código.'); return; }
-  estado.perfil.es_entrenador = true;
-  estado.perfil.codigo = data;
-  pintarTiraEntrenador();
-  abrirMenu();
-  avisar('Tu código es ' + data);
-}
 
 async function unirme() {
   const campo = $('#in-codigo');

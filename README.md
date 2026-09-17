@@ -128,14 +128,27 @@ Y abrir http://localhost:8000
 
 ## Entrenadores y alumnos
 
-Una misma cuenta puede entrenar y ser entrenada. `activar_entrenador()`
-marca el perfil y genera un código de seis caracteres de un alfabeto sin
-`O/0` ni `I/L/1`, para que se pueda dictar por teléfono.
-`unirse_con_codigo()` crea el vínculo.
+Una misma cuenta puede entrenar y ser entrenada, pero **ser entrenador
+se otorga, no se reclama**: `activar_entrenador()` no está expuesta al
+cliente y la ejecuta un administrador. Genera un código de seis
+caracteres de un alfabeto sin `O/0` ni `I/L/1`, para poder dictarlo por
+teléfono. `unirse_con_codigo()`, esa sí abierta, crea el vínculo.
 
-Ambas funciones son `SECURITY DEFINER` porque el alumno todavía no puede
-leer el perfil del entrenador cuando escribe el código. Sacan la
-identidad de `auth.uid()`, nunca de un parámetro.
+Ambas son `SECURITY DEFINER` porque el alumno todavía no puede leer el
+perfil del entrenador cuando escribe el código. Sacan la identidad de
+`auth.uid()`, nunca de un parámetro.
+
+Los permisos de fila no filtran columnas, así que la política de «editar
+mi perfil» dejaba a cualquiera ponerse `es_entrenador = true` con el
+código que quisiera. Se cerró con permisos por columna: un usuario sólo
+puede actualizar `nombre`.
+
+Para nombrar a alguien entrenador, hasta que exista el panel de
+administración:
+
+```sql
+select public.activar_entrenador();  -- con la sesión de esa persona
+```
 
 La tabla `alumnos` **no tiene política de inserción**: el único camino
 para crear un vínculo es la función, que exige conocer el código. Un
