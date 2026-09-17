@@ -476,7 +476,8 @@ async function cargarCatalogo() {
 
   const { data } = await sb
     .from('rutinas_usuario')
-    .select('rutina_id, activa, agregada_at');
+    .select('rutina_id, activa, agregada_at')
+    .eq('user_id', estado.usuario.id);
   let mias = data || [];
 
   // Las rutinas marcadas por defecto entran solas en el catálogo de quien no las tenga
@@ -558,6 +559,7 @@ async function cargarInicio() {
   const { data } = await sb
     .from('sesiones')
     .select('dia, fecha, finalizada_at')
+    .eq('user_id', estado.usuario.id)
     .eq('rutina_id', estado.rutina.id)
     .order('fecha', { ascending: false });
 
@@ -647,6 +649,7 @@ async function cargarFechas() {
   const { data } = await sb
     .from('sesiones')
     .select('fecha')
+    .eq('user_id', estado.usuario.id)
     .eq('rutina_id', estado.rutina.id)
     .eq('dia', estado.dia.dia)
     .order('fecha', { ascending: false })
@@ -678,6 +681,7 @@ async function cargarSesion() {
   const { data: ses } = await sb
     .from('sesiones')
     .select('id, cardio_hecho, finalizada_at, created_at')
+    .eq('user_id', estado.usuario.id)
     .eq('rutina_id', estado.rutina.id)
     .eq('dia', estado.dia.dia).eq('fecha', estado.fecha)
     .maybeSingle();
@@ -690,6 +694,7 @@ async function cargarSesion() {
     const { data: logs } = await sb
       .from('series_log')
       .select('ejercicio_slug, serie, peso, reps, hecho')
+      .eq('user_id', estado.usuario.id)
       .eq('sesion_id', ses.id);
     (logs || []).forEach((l) => {
       const clave = `${l.ejercicio_slug}:${l.serie}`;
@@ -703,6 +708,7 @@ async function cargarSesion() {
   const { data: prev } = await sb
     .from('ultimo_registro')
     .select('ejercicio_slug, serie, peso, reps, fecha')
+    .eq('user_id', estado.usuario.id)
     .in('ejercicio_slug', slugs);
   (prev || []).forEach((p) => {
     estado.anteriores[`${p.ejercicio_slug}:${p.serie}`] = p;
@@ -1221,6 +1227,7 @@ async function abrirHistorial(slug) {
   const { data, error } = await sb
     .from('series_log')
     .select('serie, peso, reps, sesiones!inner(fecha)')
+    .eq('user_id', estado.usuario.id)
     .eq('ejercicio_slug', slug)
     .not('peso', 'is', null)
     .limit(200);
