@@ -69,14 +69,19 @@ pide" sino por qué tan seguro es encontrarlo libre en un gimnasio:
 
 | | |
 |---|---|
-| Tu propio peso | siempre |
-| Barra, mancuernas, disco, banco, barra Z | zona de peso libre, siempre hay |
+| Barra, mancuernas, disco, banco, barra Z | peso libre: siempre hay, y se le pone carga |
 | Polea, barra fija, barras paralelas | hay, pero pocas estaciones |
-| Máquina, Smith, banda, cajón | estación concreta, o no todos los gyms la tienen |
+| Máquina, Smith, tu propio peso | otra estación, o sin carga que anotar |
+| Banda, cajón | no todos los gimnasios los tienen |
 
-Una barra cuenta como más disponible que una máquina: en un gimnasio
-siempre hay barras, y la máquina concreta que buscas es justo lo que
-puede estar ocupado.
+**Todo ocurre en un gimnasio equipado**, nunca en casa. Por eso una barra
+cuenta como más disponible que una máquina: barras siempre hay, y la
+máquina concreta que buscas es justo lo que puede estar ocupado.
+
+El peso corporal está siempre disponible, pero no encabeza las listas:
+esta app registra carga, y una flexión no deja peso que anotar. Aparece
+cuando de verdad es la mejor alternativa, como el puente de glúteo
+frente a la patada en máquina.
 
 Tres patrones existen **sólo** en máquina y no tienen sustituto directo:
 extensión de rodilla, flexión de rodilla y aducción. Llevan enlace a
