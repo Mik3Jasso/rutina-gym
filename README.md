@@ -154,3 +154,17 @@ La tabla `alumnos` **no tiene política de inserción**: el único camino
 para crear un vínculo es la función, que exige conocer el código. Un
 entrenador puede leer perfiles, sesiones, series y catálogo de sus
 alumnos, y de nadie más; no puede modificar nada de ellos.
+
+## Despliegue
+
+Antes de publicar, sellar los archivos con una versión:
+
+```bash
+node bin/sellar.mjs && git add -A && git commit && git push
+```
+
+GitHub Pages sirve todo con `cache-control: max-age=600`, así que sin el
+sello un navegador puede quedarse con el `index.html` nuevo y el
+`app.js` viejo —o al revés— durante minutos, y mucho más si la app está
+añadida a la pantalla de inicio. El sello cambia la URL de cada archivo
+en cada despliegue y obliga a descargarlos de nuevo.

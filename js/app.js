@@ -1,5 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.58.0';
-import { SERIES, DIBUJOS, urlVideo } from './rutina.js';
+import { SERIES, DIBUJOS, urlVideo } from './rutina.js?v=202609172145';
 
 // ------------------------------------------------------------
 //  Conexión. Esta llave es pública por diseño: lo que protege
@@ -313,6 +313,8 @@ function abrirMenu() {
 
   const miEntrenador = estado.entrenador
     ? `<p style="margin:0;font-size:15px">Te entrena <b>${estado.entrenador.nombre}</b>.</p>`
+    : p.es_entrenador
+    ? ''
     : `<div class="fila-codigo">
          <input id="in-codigo" maxlength="6" placeholder="CÓDIGO" autocomplete="off"
                 aria-label="Código de tu entrenador">
@@ -323,7 +325,7 @@ function abrirMenu() {
   $('#hoja-titulo').textContent = estado.nombre;
   $('#hoja-cuerpo').innerHTML = `
     ${seccionEntrenador}
-    <div class="menu-seccion"><h3>Tu entrenador</h3>${miEntrenador}</div>
+    ${miEntrenador ? `<div class="menu-seccion"><h3>Tu entrenador</h3>${miEntrenador}</div>` : ''}
     <div class="menu-seccion">
       <button class="menu-boton peligro" data-salir>Cerrar sesión</button>
     </div>`;
@@ -350,7 +352,8 @@ async function unirme() {
   const { data, error } = await sb.rpc('unirse_con_codigo', { p_codigo: codigo });
   if (error) {
     const m = (error.message || '').toLowerCase();
-    err.textContent = m.includes('codigo_propio') ? 'Ese es tu propio código.'
+    err.textContent = m.includes('ya_soy_entrenador') ? 'Un entrenador no puede unirse a otro.'
+                    : m.includes('codigo_propio') ? 'Ese es tu propio código.'
                     : m.includes('codigo_invalido') ? 'Ese código no corresponde a ningún entrenador.'
                     : 'No se pudo unir. Revisa tu conexión.';
     err.classList.remove('oculto');
