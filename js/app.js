@@ -1,5 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.58.0';
-import { SERIES, DIBUJOS, urlVideo } from './rutina.js?v=202609172145';
+import { DIBUJOS, urlVideo } from './rutina.js?v=202609172202';
 
 // ------------------------------------------------------------
 //  Conexión. Esta llave es pública por diseño: lo que protege
@@ -450,7 +450,12 @@ async function cargarDefinicionRutina(rutinaId) {
     const porBloque = {};
     (d.rutina_ejercicios || [])
       .sort((a, b) => a.bloque - b.bloque || a.orden - b.orden)
-      .forEach((re) => { (porBloque[re.bloque] ||= []).push(re.ejercicio_id); });
+      .forEach((re) => {
+        (porBloque[re.bloque] ||= []).push({
+          id: re.ejercicio_id,
+          series: re.series?.length ? re.series : [15, 12, 10, 8],
+        });
+      });
     return {
       dia: d.dia, nombre: d.nombre, tono: d.tono,
       bloques: Object.keys(porBloque).sort((a, b) => a - b).map((k) => porBloque[k]),
@@ -671,7 +676,7 @@ async function cargarSesion() {
   limpiarPantalla();
   marcarFechaActiva();
 
-  const slugs = estado.dia.bloques.flat();
+  const slugs = ejerciciosDelDia().map((e) => e.id);
   const { data: ses } = await sb
     .from('sesiones')
     .select('id, cardio_hecho, finalizada_at, created_at')
@@ -768,6 +773,10 @@ async function borrarSesion() {
 
 alPulsar('#btn-borrar-sesion', borrarSesion);
 
+// El día abierto, como lista de ejercicios con su propio esquema
+const ejerciciosDelDia = () => (estado.dia?.bloques || []).flat();
+const seriesDe = (slug) => ejerciciosDelDia().find((e) => e.id === slug)?.series || [];
+
 function pintarBloques() {
   const dia = estado.dia;
   $('#lista-bloques').innerHTML = dia.bloques.map((bloque, i) => `
@@ -776,16 +785,18 @@ function pintarBloques() {
         <span class="bloque-num">${i + 1}</span>
         <span>Superserie</span>
       </div>
-      ${bloque.map((slug) => tarjetaEjercicio(slug)).join('')}
+      ${bloque.map((item) => tarjetaEjercicio(item)).join('')}
     </section>`).join('');
 }
 
-function tarjetaEjercicio(slug) {
+function tarjetaEjercicio(item) {
+  const slug = item.id;
+  const series = item.series;
   const ej = estado.ejercicios[slug];
-  const hechas = SERIES.filter((_, i) => estado.registros[`${slug}:${i + 1}`]?.hecho).length;
-  const completo = hechas === SERIES.length;
+  const hechas = series.filter((_, i) => estado.registros[`${slug}:${i + 1}`]?.hecho).length;
+  const completo = hechas === series.length;
 
-  const filas = SERIES.map((reps, i) => {
+  const filas = series.map((reps, i) => {
     const n = i + 1;
     const r = estado.registros[`${slug}:${n}`] || {};
     const ant = estado.anteriores[`${slug}:${n}`];
@@ -825,7 +836,7 @@ function tarjetaEjercicio(slug) {
           <p class="ej-musculo">${ej.musculo}</p>
         </span>
         <span class="ej-estado">
-          <span class="pastilla ${completo ? 'completo' : ''}">${hechas}/${SERIES.length}</span>
+          <span class="pastilla ${completo ? 'completo' : ''}">${hechas}/${series.length}</span>
           <svg class="chevron" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </span>
       </button>
@@ -1043,18 +1054,19 @@ async function guardarSerie(slug, serie, btn) {
 function actualizarPastilla(slug) {
   const art = document.querySelector(`.ejercicio[data-ej="${slug}"]`);
   if (!art) return;
-  const hechas = SERIES.filter((_, i) => estado.registros[`${slug}:${i + 1}`]?.hecho).length;
+  const series = seriesDe(slug);
+  const hechas = series.filter((_, i) => estado.registros[`${slug}:${i + 1}`]?.hecho).length;
   const p = art.querySelector('.pastilla');
-  p.textContent = `${hechas}/${SERIES.length}`;
-  p.classList.toggle('completo', hechas === SERIES.length);
+  p.textContent = `${hechas}/${series.length}`;
+  p.classList.toggle('completo', hechas === series.length);
 }
 
 function actualizarProgreso() {
   if (!estado.dia) return;
-  const slugs = estado.dia.bloques.flat();
-  const total = slugs.length * SERIES.length;
-  const hechas = slugs.reduce(
-    (n, s) => n + SERIES.filter((_, i) => estado.registros[`${s}:${i + 1}`]?.hecho).length, 0);
+  const items = ejerciciosDelDia();
+  const total = items.reduce((n, e) => n + e.series.length, 0);
+  const hechas = items.reduce(
+    (n, e) => n + e.series.filter((_, i) => estado.registros[`${e.id}:${i + 1}`]?.hecho).length, 0);
   const pct = total ? Math.round((hechas / total) * 100) : 0;
   const anillo = $('#progreso-dia');
   anillo.style.setProperty('--pct', pct + '%');
@@ -1092,8 +1104,8 @@ function pintarFinalizacion() {
 
 function contarMarcadas() {
   if (!estado.dia) return 0;
-  return estado.dia.bloques.flat().reduce(
-    (n, s) => n + SERIES.filter((_, i) => estado.registros[`${s}:${i + 1}`]?.hecho).length, 0);
+  return ejerciciosDelDia().reduce(
+    (n, e) => n + e.series.filter((_, i) => estado.registros[`${e.id}:${i + 1}`]?.hecho).length, 0);
 }
 
 // Sube en orden todas las series en ámbar. Devuelve cuántas fallaron.
@@ -1152,14 +1164,14 @@ async function finalizarRutina() {
 }
 
 function mostrarResumen() {
-  const slugs = estado.dia.bloques.flat();
+  const items = ejerciciosDelDia();
   const marcadas = contarMarcadas();
-  const completos = slugs.filter(
-    (s) => SERIES.every((_, i) => estado.registros[`${s}:${i + 1}`]?.hecho)).length;
+  const completos = items.filter(
+    (e) => e.series.every((_, i) => estado.registros[`${e.id}:${i + 1}`]?.hecho)).length;
 
   let volumen = 0;
-  slugs.forEach((s) => SERIES.forEach((_, i) => {
-    const r = estado.registros[`${s}:${i + 1}`];
+  items.forEach((e) => e.series.forEach((_, i) => {
+    const r = estado.registros[`${e.id}:${i + 1}`];
     if (r?.hecho && r.peso && r.reps) volumen += r.peso * r.reps;
   }));
 
@@ -1169,9 +1181,10 @@ function mostrarResumen() {
     if (min > 0) duracion = min >= 60 ? `${Math.floor(min / 60)} h ${min % 60} min` : `${min} min`;
   }
 
-  const porEjercicio = slugs.map((s) => {
-    const hechas = SERIES.filter((_, i) => estado.registros[`${s}:${i + 1}`]?.hecho).length;
-    const pesos = SERIES.map((_, i) => estado.registros[`${s}:${i + 1}`])
+  const porEjercicio = items.map((e) => {
+    const s = e.id;
+    const hechas = e.series.filter((_, i) => estado.registros[`${s}:${i + 1}`]?.hecho).length;
+    const pesos = e.series.map((_, i) => estado.registros[`${s}:${i + 1}`])
       .filter((r) => r?.hecho && r.peso != null).map((r) => nDecimal(r.peso));
     return `<li><span style="color:var(--texto)">${estado.ejercicios[s].nombre}</span>
       <span>${hechas ? pesos.join(' · ') + ' kg' : '—'}</span></li>`;
@@ -1181,7 +1194,7 @@ function mostrarResumen() {
   $('#hoja-cuerpo').innerHTML = `
     <div class="resumen-cifras">
       <div class="resumen-cifra"><b>${marcadas}</b><span>${marcadas === 1 ? 'serie guardada' : 'series guardadas'}</span></div>
-      <div class="resumen-cifra"><b>${completos}/${slugs.length}</b><span>ejercicios</span></div>
+      <div class="resumen-cifra"><b>${completos}/${items.length}</b><span>ejercicios</span></div>
       <div class="resumen-cifra"><b>${volumen ? volumen.toLocaleString('es-MX') : '—'}</b><span>kg levantados</span></div>
       <div class="resumen-cifra"><b>${duracion || '—'}</b><span>duración</span></div>
     </div>
