@@ -13,7 +13,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=202609172305">
+<link rel="stylesheet" href="css/styles.css?v=202609181548">
 </head>
 <body>
 
@@ -81,8 +81,43 @@
 
   <h2 class="titulo-seccion">Tus rutinas</h2>
   <div id="lista-rutinas" class="lista-rutinas"></div>
-  <button id="btn-nueva-rutina" class="btn-agregar oculto">+ Armar una rutina</button>
 
+
+</section>
+
+<!-- ============ BIBLIOTECA DEL ENTRENADOR ============ -->
+<section id="vista-biblioteca" class="vista oculto">
+  <header class="cabecera">
+    <button id="btn-volver-de-biblioteca" class="btn-icono" aria-label="Volver">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+    <div style="flex:1;min-width:0">
+      <p class="saludo">Las que armaste</p>
+      <h1>Mis rutinas</h1>
+    </div>
+  </header>
+
+  <div id="lista-biblioteca" class="lista-rutinas"></div>
+  <button id="btn-nueva-rutina" class="btn-agregar">+ Armar una rutina</button>
+</section>
+
+<!-- ============ UN ALUMNO ============ -->
+<section id="vista-alumno" class="vista oculto">
+  <header class="cabecera">
+    <button id="btn-volver-de-alumno" class="btn-icono" aria-label="Volver">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+    <div style="flex:1;min-width:0">
+      <p class="saludo" id="alumno-resumen">—</p>
+      <h1 id="alumno-nombre">—</h1>
+    </div>
+  </header>
+
+  <h2 class="titulo-seccion">Sus rutinas</h2>
+  <div id="alumno-rutinas" class="lista-rutinas"></div>
+
+  <button id="btn-asignar-existente" class="btn-agregar">+ Asignar una rutina que ya tengo</button>
+  <button id="btn-crear-para-alumno" class="btn-agregar">+ Armar una nueva para esta persona</button>
 </section>
 
 <!-- ============ ALUMNOS DEL ENTRENADOR ============ -->
@@ -234,6 +269,6 @@
   <button id="fallo-cerrar" class="fallo-cerrar" aria-label="Cerrar aviso">✕</button>
 </div>
 
-<script type="module" src="js/app.js?v=202609172305"></script>
+<script type="module" src="js/app.js?v=202609181548"></script>
 </body>
 </html>

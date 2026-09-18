@@ -1,5 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.58.0';
-import { DIBUJOS, urlVideo } from './rutina.js?v=202609172305';
+import { DIBUJOS, urlVideo } from './rutina.js?v=202609181548';
 
 // ------------------------------------------------------------
 //  Conexión. Esta llave es pública por diseño: lo que protege
@@ -306,11 +306,9 @@ function pintarTiraEntrenador() {
       <button data-ver-alumnos>Ver</button>`;
     tira.classList.remove('oculto');
     tira.querySelector('[data-ver-alumnos]').addEventListener('click', abrirAlumnos);
-    $('#btn-nueva-rutina')?.classList.remove('oculto');
   } else {
     tira.classList.add('oculto');
   }
-  $('#btn-nueva-rutina')?.classList.toggle('oculto', !estado.perfil?.es_entrenador);
 }
 
 // ------------------------------------------------------------
@@ -324,8 +322,8 @@ function abrirMenu() {
            <span>Comparte este código para que se unan a ti</span></div>
          <button class="menu-boton" data-alumnos>Mis alumnos
            <small>${estado.alumnos.length}</small></button>
-         <button class="menu-boton" data-nueva-rutina>Armar una rutina
-           <small>nueva</small></button>
+         <button class="menu-boton" data-biblioteca>Mis rutinas
+           <small>las que armé</small></button>
        </div>`
     : '';
 
@@ -349,8 +347,8 @@ function abrirMenu() {
     </div>`;
   $('#hoja').classList.remove('oculto');
 
-  $('#hoja-cuerpo').querySelector('[data-nueva-rutina]')?.addEventListener('click', () => {
-    $('#hoja').classList.add('oculto'); nuevaRutina();
+  $('#hoja-cuerpo').querySelector('[data-biblioteca]')?.addEventListener('click', () => {
+    $('#hoja').classList.add('oculto'); abrirBiblioteca();
   });
   $('#hoja-cuerpo').querySelector('[data-alumnos]')?.addEventListener('click', () => {
     $('#hoja').classList.add('oculto'); abrirAlumnos();
@@ -389,6 +387,137 @@ async function unirme() {
 }
 
 // ------------------------------------------------------------
+//  Biblioteca: lo que armé como entrenador
+// ------------------------------------------------------------
+async function abrirBiblioteca() {
+  estado.origenEditor = null;
+  mostrarVista('#vista-biblioteca');
+  $('#lista-biblioteca').innerHTML = '<p class="vacio">Cargando…</p>';
+
+  const { data: propias } = await sb
+    .from('rutinas').select('id, nombre, creada, creador_id')
+    .eq('creador_id', estado.usuario.id);
+
+  const cuantos = {};
+  if ((propias || []).length) {
+    const { data: reparto } = await sb.from('rutinas_usuario')
+      .select('rutina_id').in('rutina_id', propias.map((r) => r.id));
+    (reparto || []).forEach((x) => { cuantos[x.rutina_id] = (cuantos[x.rutina_id] || 0) + 1; });
+  }
+  estado.repartoRutinas = cuantos;
+  (propias || []).forEach((r) => { estado.rutinas[r.id] ||= r; });
+
+  $('#lista-biblioteca').innerHTML = (propias || []).length
+    ? propias
+        .sort((a, b) => String(b.creada).localeCompare(String(a.creada)))
+        .map((r) => `
+          <button class="tarjeta-rutina ${cuantos[r.id] ? '' : 'rutina-suelta'}" data-abrir-rutina="${r.id}">
+            <span class="rutina-icono">
+              <svg viewBox="0 0 48 48" aria-hidden="true"><path d="M6 20h4v8H6zM38 20h4v8h-4zM12 16h5v16h-5zM31 16h5v16h-5zM17 22h14v4H17z"/></svg>
+            </span>
+            <span class="rutina-info">
+              <h3>${r.nombre}</h3>
+              <p>Creada el ${fechaLarga(r.creada)} · ${repartoTexto(r.id)}</p>
+            </span>
+            <span class="rutina-flecha">
+              <svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </span>
+          </button>`).join('')
+    : '<p class="vacio-biblioteca">Todavía no has armado ninguna rutina.<br>La que armes aparecerá aquí, con quién la tiene.</p>';
+
+  $('#lista-biblioteca').querySelectorAll('[data-abrir-rutina]').forEach((b) => {
+    b.addEventListener('click', () => editarRutina(b.dataset.abrirRutina));
+  });
+}
+
+alPulsar('#btn-volver-de-biblioteca', cargarCatalogo);
+
+// ------------------------------------------------------------
+//  Una persona a la que entreno
+// ------------------------------------------------------------
+async function abrirAlumno(alumnoId) {
+  const p = estado.perfilesAlumnos?.[alumnoId];
+  estado.alumnoAbierto = alumnoId;
+  estado.origenEditor = alumnoId;
+  mostrarVista('#vista-alumno');
+  $('#alumno-nombre').textContent = p?.nombre || 'Alumno';
+  $('#alumno-resumen').textContent = 'Entrenas a';
+  $('#alumno-rutinas').innerHTML = '<p class="vacio">Cargando…</p>';
+
+  const { data: suyas } = await sb.from('rutinas_usuario')
+    .select('rutina_id, activa').eq('user_id', alumnoId);
+  const ids = (suyas || []).map((x) => x.rutina_id);
+
+  const { data: defs } = ids.length
+    ? await sb.from('rutinas').select('id, nombre, creada, creador_id').in('id', ids)
+    : { data: [] };
+  const porId = {}; (defs || []).forEach((r) => { porId[r.id] = r; });
+
+  const { data: ses } = await sb.from('sesiones')
+    .select('fecha').eq('user_id', alumnoId);
+  const n = (ses || []).length;
+  const ultima = (ses || []).map((x) => x.fecha).sort().pop();
+  $('#alumno-resumen').textContent =
+    `${n} ${n === 1 ? 'entrenamiento' : 'entrenamientos'} · ${relativo(ultima)}`;
+
+  $('#alumno-rutinas').innerHTML = ids.length
+    ? (suyas || []).filter((x) => porId[x.rutina_id]).map((x) => {
+        const r = porId[x.rutina_id];
+        return `
+          <div class="tarjeta-rutina ${x.activa ? 'activa' : ''}" style="cursor:default">
+            <span class="rutina-icono">
+              <svg viewBox="0 0 48 48" aria-hidden="true"><path d="M6 20h4v8H6zM38 20h4v8h-4zM12 16h5v16h-5zM31 16h5v16h-5zM17 22h14v4H17z"/></svg>
+            </span>
+            <span class="rutina-info">
+              <h3>${r.nombre}${x.activa ? '<span class="insignia-activa">activa</span>' : ''}</h3>
+              <p>Creada el ${fechaLarga(r.creada)}</p>
+            </span>
+          </div>`;
+      }).join('')
+    : '<p class="vacio-biblioteca">Todavía no tiene ninguna rutina asignada.</p>';
+}
+
+alPulsar('#btn-volver-de-alumno', abrirAlumnos);
+alPulsar('#btn-crear-para-alumno', () => {
+  nuevaRutina();
+  if (estado.alumnoAbierto) { estado.editor.asignar.add(estado.alumnoAbierto); pintarEditor(); }
+});
+alPulsar('#btn-asignar-existente', asignarExistente);
+
+// Asignar a esta persona una rutina que ya armé
+async function asignarExistente() {
+  const alumnoId = estado.alumnoAbierto;
+  if (!alumnoId) return;
+
+  const { data: propias } = await sb
+    .from('rutinas').select('id, nombre, creada').eq('creador_id', estado.usuario.id);
+  const { data: yaTiene } = await sb.from('rutinas_usuario')
+    .select('rutina_id').eq('user_id', alumnoId);
+  const tiene = new Set((yaTiene || []).map((x) => x.rutina_id));
+  const libres = (propias || []).filter((r) => !tiene.has(r.id));
+
+  $('#hoja-titulo').textContent = 'Asignar una rutina';
+  $('#hoja-cuerpo').innerHTML = libres.length
+    ? libres.map((r) => `
+        <button class="resultado" data-asignar-rutina="${r.id}">
+          <div><b>${r.nombre}</b><small>Creada el ${fechaLarga(r.creada)}</small></div>
+        </button>`).join('')
+    : '<p class="vacio">No te queda ninguna rutina por asignarle. Arma una nueva.</p>';
+  $('#hoja').classList.remove('oculto');
+
+  $('#hoja-cuerpo').querySelectorAll('[data-asignar-rutina]').forEach((b) => {
+    b.addEventListener('click', async () => {
+      const { error } = await sb.from('rutinas_usuario')
+        .insert({ user_id: alumnoId, rutina_id: b.dataset.asignarRutina, activa: false });
+      $('#hoja').classList.add('oculto');
+      if (error) { mostrarFallo(asignarExistente, 'No se pudo asignar la rutina.'); return; }
+      avisar('Rutina asignada');
+      abrirAlumno(alumnoId);
+    });
+  });
+}
+
+// ------------------------------------------------------------
 //  Lista de alumnos
 // ------------------------------------------------------------
 async function abrirAlumnos() {
@@ -412,6 +541,7 @@ async function abrirAlumnos() {
   }
 
   const { data: perfiles } = await sb.from('profiles').select('id, nombre').in('id', ids);
+  (perfiles || []).forEach((p) => { estado.perfilesAlumnos[p.id] = p; });
   const { data: ses } = await sb.from('sesiones').select('user_id, fecha').in('user_id', ids);
 
   const porUsuario = {};
@@ -424,14 +554,18 @@ async function abrirAlumnos() {
   $('#lista-alumnos').innerHTML = (perfiles || []).map((p) => {
     const d = porUsuario[p.id] || { n: 0, ultima: null };
     return `
-      <div class="tarjeta-alumno">
+      <button class="tarjeta-alumno" data-alumno="${p.id}">
         <span class="inicial">${(p.nombre || '?').charAt(0).toUpperCase()}</span>
         <span class="alumno-info">
           <h3>${p.nombre}</h3>
           <p>${d.n} ${d.n === 1 ? 'entrenamiento' : 'entrenamientos'} · ${relativo(d.ultima)}</p>
         </span>
-      </div>`;
+      </button>`;
   }).join('');
+
+  $('#lista-alumnos').querySelectorAll('[data-alumno]').forEach((b) => {
+    b.addEventListener('click', () => abrirAlumno(b.dataset.alumno));
+  });
 }
 
 alPulsar('#btn-volver-catalogo', cargarCatalogo);
@@ -606,12 +740,18 @@ $('#editor-asignar')?.addEventListener('change', (e) => {
 });
 
 alPulsar('#btn-nueva-rutina', nuevaRutina);
+
+// Al cerrar el editor se vuelve a donde se abrió: la ficha de la
+// persona o la biblioteca de rutinas.
+function salirDelEditor() {
+  return estado.origenEditor ? abrirAlumno(estado.origenEditor) : abrirBiblioteca();
+}
 alPulsar('#btn-agregar-dia', () => {
   estado.editor.dias.push({ nombre: '', ejercicios: [] });
   pintarEditor();
 });
 alPulsar('#btn-cancelar-editor', () => {
-  if (confirm('¿Descartar esta rutina?')) { estado.editor = null; cargarCatalogo(); }
+  if (confirm('¿Descartar esta rutina?')) { estado.editor = null; salirDelEditor(); }
 });
 $('#in-nombre-rutina')?.addEventListener('input', (e) => {
   estado.editor.nombre = e.target.value;
@@ -722,7 +862,7 @@ async function guardarRutina() {
     estado.editor = null;
     estado.rutinas = {};
     avisar(ed.id ? 'Cambios guardados' : 'Rutina guardada');
-    await cargarCatalogo();
+    await salirDelEditor();
   } catch (err) {
     nota.textContent = 'No se pudo guardar. Revisa tu conexión e inténtalo otra vez.';
   } finally {
@@ -749,7 +889,7 @@ async function borrarRutina() {
     estado.editor = null;
     estado.rutinas = {};
     avisar('Rutina eliminada');
-    await cargarCatalogo();
+    await salirDelEditor();
   } catch (err) {
     // La base impide borrar una rutina con entrenamientos: perdería el historial
     const m = (err?.message || '').toLowerCase();
@@ -846,29 +986,11 @@ async function cargarCatalogo() {
   const porId = {};
   (defs || []).forEach((r) => { porId[r.id] = r; estado.rutinas[r.id] ||= r; });
 
-  // Las que yo armé salen aunque no se las haya dado a nadie: si no,
-  // quedan invisibles y ni siquiera se pueden modificar o borrar.
-  const { data: mias_creadas } = await sb
-    .from('rutinas').select('id, nombre, creada, creador_id')
-    .eq('creador_id', estado.usuario.id);
-  const asignadas = new Set(mias.map((m) => m.rutina_id));
-  const sueltas = (mias_creadas || []).filter((r) => !asignadas.has(r.id));
-  sueltas.forEach((r) => { porId[r.id] = r; estado.rutinas[r.id] ||= r; });
-
-  // A cuánta gente le di cada rutina que armé. Cuenta lo que alcanzo a
-  // ver: yo mismo y mis alumnos.
-  const cuantos = {};
-  if ((mias_creadas || []).length) {
-    const { data: reparto } = await sb.from('rutinas_usuario')
-      .select('rutina_id').in('rutina_id', mias_creadas.map((r) => r.id));
-    (reparto || []).forEach((x) => { cuantos[x.rutina_id] = (cuantos[x.rutina_id] || 0) + 1; });
-  }
-  estado.repartoRutinas = cuantos;
-
+  // El catálogo es sólo lo que YO entreno. Lo que armé como entrenador
+  // vive en la biblioteca, que es otra pregunta y crece de otra forma.
   estado.catalogo = mias
     .map((m) => ({ ...m, def: porId[m.rutina_id] }))
     .filter((m) => m.def)
-    .concat(sueltas.map((r) => ({ rutina_id: r.id, activa: false, def: r })))
     .sort((a, b) => String(b.def.creada).localeCompare(String(a.def.creada)));
 
   $('#nombre-usuario').textContent = estado.nombre || 'atleta';
@@ -881,15 +1003,12 @@ async function cargarCatalogo() {
           </span>
           <span class="rutina-info">
             <h3>${m.def.nombre}${m.activa ? '<span class="insignia-activa">activa</span>' : ''}</h3>
-            <p>Creada el ${fechaLarga(m.def.creada)}${
-              m.def.creador_id === estado.usuario.id ? ' · ' + repartoTexto(m.rutina_id) : ''}</p>
+            <p>Creada el ${fechaLarga(m.def.creada)}</p>
           </span>
           <span class="rutina-flecha">
             <svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </span>
-        </button>
-        ${m.def.creador_id === estado.usuario.id
-          ? `<button class="btn-editar-rutina" data-editar="${m.rutina_id}">Modificar</button>` : ''}`).join('')
+        </button>`).join('')
     : '<p class="catalogo-vacio">Todavía no tienes ninguna rutina en tu catálogo.</p>';
 
   $('#lista-rutinas').querySelectorAll('.tarjeta-rutina').forEach((b) => {

@@ -775,3 +775,14 @@ input{font-family:inherit}
   padding:2px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:.05em;
   border:1px solid var(--borde);
 }
+
+/* ============ BIBLIOTECA Y FICHA DE ALUMNO ============ */
+.tarjeta-alumno{cursor:pointer;transition:border-color .15s;font:inherit;color:inherit}
+.tarjeta-alumno:hover{border-color:var(--muted-2)}
+.rutina-suelta{opacity:.72}
+.lista-rutinas .btn-agregar{margin-top:14px}
+#vista-alumno .btn-agregar + .btn-agregar{margin-top:8px}
+.vacio-biblioteca{
+  text-align:center;color:var(--muted);font-size:15px;line-height:1.6;
+  padding:34px 20px;border:1px dashed var(--borde);border-radius:var(--radio);
+}
