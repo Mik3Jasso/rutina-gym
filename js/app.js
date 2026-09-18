@@ -1,5 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.58.0';
-import { DIBUJOS, urlVideo } from './rutina.js?v=202609182251';
+import { DIBUJOS, urlVideo } from './rutina.js?v=202609182254';
 
 // ------------------------------------------------------------
 //  Conexión. Esta llave es pública por diseño: lo que protege
@@ -1782,6 +1782,26 @@ function marcarGuardada(clave) {
 
 // La palomita es el boton de guardar: toma el peso y las reps de su
 // fila, los sube, y solo entonces se pone verde.
+// Un dedo de más convierte 38 kg en 388 y descompone el progreso.
+// Si el peso es mucho mayor que lo más pesado que se conoce de este
+// ejercicio (la vez pasada o las otras series de hoy), se pregunta.
+function pesoCreible(slug, serie, peso) {
+  if (!(peso > 0)) return true;
+  // De hoy cuentan las otras series; la que se está marcando no.
+  const hoyOtras = Object.entries(estado.registros).filter(([c]) => c !== `${slug}:${serie}`);
+  const conocidos = [...Object.entries(estado.anteriores), ...hoyOtras]
+    .filter(([clave]) => clave.startsWith(slug + ':'))
+    .map(([, r]) => Number(r.peso) || 0);
+  const referencia = Math.max(0, ...conocidos);
+  const exagerado = referencia > 0
+    ? peso >= referencia * 2 && peso - referencia >= 20
+    : peso > 300;
+  if (!exagerado) return true;
+  return confirm(referencia > 0
+    ? `¿${nDecimal(peso)} kg? Lo más pesado que tienes en este ejercicio es ${nDecimal(referencia)} kg.\n\nAcepta si es correcto, o cancela para corregirlo.`
+    : `¿${nDecimal(peso)} kg? Es mucho peso.\n\nAcepta si es correcto, o cancela para corregirlo.`);
+}
+
 async function guardarSerie(slug, serie, btn) {
   if (btn.classList.contains('guardando')) return;
 
@@ -1797,6 +1817,12 @@ async function guardarSerie(slug, serie, btn) {
     tr.classList.add('falta');
     setTimeout(() => tr.classList.remove('falta'), 1400);
     avisar('Escribe el peso o las repeticiones antes de marcar', true);
+    return;
+  }
+
+  if (marcar && !pesoCreible(slug, serie, peso)) {
+    inPeso.focus();
+    inPeso.select();
     return;
   }
 
