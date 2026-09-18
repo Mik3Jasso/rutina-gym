@@ -1,5 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.58.0';
-import { DIBUJOS, urlVideo } from './rutina.js?v=202609181548';
+import { DIBUJOS, urlVideo } from './rutina.js?v=202609182251';
 
 // ------------------------------------------------------------
 //  Conexión. Esta llave es pública por diseño: lo que protege
@@ -340,6 +340,10 @@ function abrirMenu() {
 
   $('#hoja-titulo').textContent = estado.nombre;
   $('#hoja-cuerpo').innerHTML = `
+    <div class="menu-seccion">
+      <button class="menu-boton" data-mi-progreso>Mi progreso
+        <small>constancia y cargas</small></button>
+    </div>
     ${seccionEntrenador}
     ${miEntrenador ? `<div class="menu-seccion"><h3>Tu entrenador</h3>${miEntrenador}</div>` : ''}
     <div class="menu-seccion">
@@ -347,6 +351,10 @@ function abrirMenu() {
     </div>`;
   $('#hoja').classList.remove('oculto');
 
+  $('#hoja-cuerpo').querySelector('[data-mi-progreso]')?.addEventListener('click', () => {
+    $('#hoja').classList.add('oculto');
+    abrirProgreso(estado.usuario.id, estado.nombre, cargarCatalogo);
+  });
   $('#hoja-cuerpo').querySelector('[data-biblioteca]')?.addEventListener('click', () => {
     $('#hoja').classList.add('oculto'); abrirBiblioteca();
   });
@@ -443,6 +451,7 @@ async function abrirAlumno(alumnoId) {
   $('#alumno-nombre').textContent = p?.nombre || 'Alumno';
   $('#alumno-resumen').textContent = 'Entrenas a';
   $('#alumno-rutinas').innerHTML = '<p class="vacio">Cargando…</p>';
+  $('#alumno-mapa').innerHTML = '';
 
   const { data: suyas } = await sb.from('rutinas_usuario')
     .select('rutina_id, activa').eq('user_id', alumnoId);
@@ -455,6 +464,7 @@ async function abrirAlumno(alumnoId) {
 
   const { data: ses } = await sb.from('sesiones')
     .select('fecha').eq('user_id', alumnoId);
+  $('#alumno-mapa').innerHTML = mapaMini((ses || []).map((x) => x.fecha));
   const n = (ses || []).length;
   const ultima = (ses || []).map((x) => x.fecha).sort().pop();
   $('#alumno-resumen').textContent =
@@ -517,6 +527,282 @@ async function asignarExistente() {
   });
 }
 
+// ============================================================
+//  Progreso: constancia y cargas de una persona (yo o un alumno)
+// ============================================================
+
+// Supabase entrega 1000 filas por consulta; el historial crece
+// más que eso, así que se pide por páginas.
+async function todasLasFilas(consulta) {
+  const filas = [];
+  for (let desde = 0; ; desde += 1000) {
+    const { data, error } = await consulta().range(desde, desde + 999);
+    if (error) throw error;
+    filas.push(...(data || []));
+    if (!data || data.length < 1000) return filas;
+  }
+}
+
+const isoDe = (d) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+// Lunes de la semana de una fecha
+function lunesDe(iso) {
+  const [a, m, d] = iso.split('-').map(Number);
+  const f = new Date(a, m - 1, d);
+  f.setDate(f.getDate() - ((f.getDay() + 6) % 7));
+  return isoDe(f);
+}
+
+// Mapa de constancia: una columna por semana (de lunes a domingo),
+// la última es la actual. `nivel` va de fecha a 0, 1 o 2.
+function mapaConstancia(nivel, { semanas = 12, celda = 9, hueco = 3, etiqueta = '' } = {}) {
+  const inicio = new Date(lunesDe(hoy()).replace(/-/g, '/'));
+  inicio.setDate(inicio.getDate() - (semanas - 1) * 7);
+  const paso = celda + hueco;
+  const w = semanas * paso - hueco, h = 7 * paso - hueco;
+  const colores = ['var(--surface-2)', 'color-mix(in srgb, var(--acento) 45%, var(--surface-2))', 'var(--acento)'];
+  let cuadros = '';
+  const d = new Date(inicio);
+  for (let c = 0; c < semanas; c++) {
+    for (let f = 0; f < 7; f++) {
+      const iso = isoDe(d);
+      if (iso <= hoy()) {
+        cuadros += `<rect x="${c * paso}" y="${f * paso}" width="${celda}" height="${celda}" rx="${celda > 8 ? 2.5 : 1.5}" fill="${colores[nivel[iso] || 0]}"/>`;
+      }
+      d.setDate(d.getDate() + 1);
+    }
+  }
+  return `<svg class="mapa-constancia" viewBox="0 0 ${w} ${h}" role="img"
+    aria-label="${etiqueta || `Días entrenados en las últimas ${semanas} semanas`}">${cuadros}</svg>`;
+}
+
+// Semanas seguidas con al menos un entrenamiento. La semana en curso
+// no rompe la racha si todavía no se ha entrenado en ella.
+function semanasSeguidas(fechas) {
+  const conEntreno = new Set(fechas.map(lunesDe));
+  const lunes = new Date(lunesDe(hoy()).replace(/-/g, '/'));
+  if (!conEntreno.has(isoDe(lunes))) lunes.setDate(lunes.getDate() - 7);
+  let n = 0;
+  while (conEntreno.has(isoDe(lunes))) { n++; lunes.setDate(lunes.getDate() - 7); }
+  return n;
+}
+
+const formatoKilos = (kg) =>
+  kg >= 1000 ? `${(kg / 1000).toLocaleString('es-MX', { maximumFractionDigits: 1 })} t`
+             : `${Math.round(kg)} kg`;
+
+// Por ejercicio, la serie más pesada de cada fecha. Si nunca lleva
+// peso (abdominales, dominadas sin lastre) se sigue por repeticiones.
+function puntosPorEjercicio(series, fechaDeSesion) {
+  const porEj = {};
+  series.forEach((s) => {
+    if (!s.hecho) return;
+    const fecha = fechaDeSesion[s.sesion_id];
+    if (!fecha) return;
+    ((porEj[s.ejercicio_slug] ||= {})[fecha] ||= []).push(s);
+  });
+
+  return Object.entries(porEj).map(([slug, porFecha]) => {
+    const todas = Object.values(porFecha).flat();
+    const conPeso = todas.some((s) => Number(s.peso) > 0);
+    const puntos = Object.keys(porFecha).sort().map((fecha) => {
+      const mejor = porFecha[fecha].reduce((a, b) => {
+        const va = conPeso ? Number(a.peso) || 0 : a.reps || 0;
+        const vb = conPeso ? Number(b.peso) || 0 : b.reps || 0;
+        return vb > va || (vb === va && (b.reps || 0) > (a.reps || 0)) ? b : a;
+      });
+      return { fecha, valor: conPeso ? Number(mejor.peso) || 0 : mejor.reps || 0, reps: mejor.reps, series: porFecha[fecha] };
+    });
+    return { slug, unidad: conPeso ? 'kg' : 'reps', puntos };
+  });
+}
+
+function chispa(valores) {
+  const W = 84, H = 26;
+  if (valores.length < 2) {
+    return `<svg class="chispa" viewBox="0 0 ${W} ${H}" aria-hidden="true">
+      <circle cx="${W - 4}" cy="${H / 2}" r="3" fill="var(--acento)"/></svg>`;
+  }
+  const min = Math.min(...valores), max = Math.max(...valores), rango = max - min || 1;
+  const pts = valores.map((v, i) => [4 + i * ((W - 8) / (valores.length - 1)),
+    max === min ? H / 2 : H - 4 - ((v - min) / rango) * (H - 8)]);
+  const d = pts.map((p, i) => (i ? 'L' : 'M') + p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join(' ');
+  const fin = pts[pts.length - 1];
+  return `<svg class="chispa" viewBox="0 0 ${W} ${H}" aria-hidden="true">
+    <path d="${d}" fill="none" stroke="var(--acento)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="${fin[0].toFixed(1)}" cy="${fin[1].toFixed(1)}" r="3" fill="var(--acento)" stroke="var(--surface)" stroke-width="1.5"/>
+  </svg>`;
+}
+
+// Gráfica de un ejercicio: la serie más pesada por sesión. Las
+// repeticiones van como cifra bajo cada punto, no como segunda línea.
+function graficaEjercicio(ej, nombre) {
+  const puntos = ej.puntos.slice(-10);
+  const W = 340, H = 210, ML = 34, MR = 12, MT = 14, MB = 50;
+  const valores = puntos.map((p) => p.valor);
+  let min = Math.min(...valores), max = Math.max(...valores);
+  if (max === min) { min = Math.max(0, min - 5); max += 5; }
+  // Un paso redondo (1, 2, 5, 10…) que deje unas cuatro líneas
+  const bruto = (max - min) / 4, orden = 10 ** Math.floor(Math.log10(bruto));
+  const paso = [1, 2, 5, 10].find((f) => f * orden >= bruto) * orden;
+  min = Math.floor(min / paso) * paso; max = Math.ceil(max / paso) * paso;
+  const lineas = [];
+  for (let v = min; v <= max + paso / 2; v += paso) lineas.push(Math.round(v * 10) / 10);
+
+  // Los puntos se separan de los bordes para que su fecha y sus
+  // repeticiones no choquen con el eje ni se corten.
+  const IZQ = ML + 18, DER = W - MR - 16;
+  const x = (i) => puntos.length === 1 ? (IZQ + DER) / 2 : IZQ + i * ((DER - IZQ) / (puntos.length - 1));
+  const y = (v) => MT + (1 - (v - min) / (max - min)) * (H - MT - MB);
+  const rejilla = lineas.map((v) => `
+    <line x1="${ML}" y1="${y(v).toFixed(1)}" x2="${W - MR}" y2="${y(v).toFixed(1)}" stroke="var(--borde)"/>
+    <text x="${ML - 7}" y="${(y(v) + 4).toFixed(1)}" text-anchor="end" class="g-eje">${v}</text>`).join('');
+  const linea = puntos.map((p, i) => (i ? 'L' : 'M') + x(i).toFixed(1) + ' ' + y(p.valor).toFixed(1)).join(' ');
+  const saltar = puntos.length > 6 ? 2 : 1;
+  const abajo = puntos.map((p, i) => {
+    const conFecha = i % saltar === (puntos.length - 1) % saltar;
+    return `
+      <circle cx="${x(i).toFixed(1)}" cy="${y(p.valor).toFixed(1)}" r="4" fill="var(--acento)" stroke="var(--surface)" stroke-width="2"/>
+      ${ej.unidad === 'kg' && p.reps ? `<text x="${x(i).toFixed(1)}" y="${H - 30}" text-anchor="middle" class="g-reps">${p.reps}</text>` : ''}
+      ${conFecha ? `<text x="${x(i).toFixed(1)}" y="${H - 12}" text-anchor="middle" class="g-eje">${fechaCorta(p.fecha)}</text>` : ''}`;
+  }).join('');
+  const primero = puntos[0], ultimo = puntos[puntos.length - 1];
+  const resumen = `${nombre}: de ${primero.valor} a ${ultimo.valor} ${ej.unidad} entre el ${fechaCorta(primero.fecha)} y el ${fechaCorta(ultimo.fecha)}`;
+  return `
+    <p class="g-titulo">${ej.unidad === 'kg' ? 'Serie más pesada de cada sesión, en kilos' : 'Mejor serie de cada sesión, en repeticiones'}</p>
+    <svg class="grafica" viewBox="0 0 ${W} ${H}" role="img" aria-label="${resumen}">
+      ${rejilla}
+      <path d="${linea}" fill="none" stroke="var(--acento)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+      ${abajo}
+      ${ej.unidad === 'kg' ? `<text x="${ML - 7}" y="${H - 30}" text-anchor="end" class="g-eje">reps</text>` : ''}
+    </svg>`;
+}
+
+function filasHistorial(puntos) {
+  return puntos.slice().reverse().slice(0, 12).map((p) => `
+    <div class="hist-fila">
+      <span class="hist-fecha">${fechaCorta(p.fecha)}</span>
+      <span class="hist-pesos">
+        ${p.series.sort((a, b) => a.serie - b.serie).map((s) =>
+          `<span class="hist-peso">${s.peso === null ? 'sin peso' : `${nDecimal(s.peso)} kg`}${s.reps ? ` × ${s.reps}` : ''}</span>`).join('')}
+      </span>
+    </div>`).join('');
+}
+
+// Todo lo de una persona: sesiones y series registradas
+async function leerHistorialDe(userId, slug = null) {
+  const sesiones = await todasLasFilas(() => sb.from('sesiones')
+    .select('id, fecha').eq('user_id', userId).order('id'));
+  const series = await todasLasFilas(() => {
+    let q = sb.from('series_log')
+      .select('sesion_id, ejercicio_slug, serie, peso, reps, hecho').eq('user_id', userId);
+    if (slug) q = q.eq('ejercicio_slug', slug);
+    return q.order('id');
+  });
+  const fechaDeSesion = {};
+  sesiones.forEach((s) => { fechaDeSesion[s.id] = s.fecha; });
+  return { sesiones, series, fechaDeSesion };
+}
+
+async function abrirProgreso(userId, nombre, volver) {
+  estado.volverDeProgreso = volver;
+  mostrarVista('#vista-progreso');
+  $('#progreso-nombre').textContent = nombre;
+  $('#progreso-cuerpo').innerHTML = '<p class="vacio">Cargando…</p>';
+
+  let datos;
+  try { datos = await leerHistorialDe(userId); }
+  catch { $('#progreso-cuerpo').innerHTML = '<p class="vacio">No se pudo cargar. Revisa tu conexión.</p>'; return; }
+  const { sesiones, series, fechaDeSesion } = datos;
+
+  if (!sesiones.length) {
+    $('#progreso-cuerpo').innerHTML = `<p class="vacio-biblioteca">Todavía no hay entrenamientos registrados.<br>
+      El progreso aparece aquí desde el primer día.</p>`;
+    return;
+  }
+
+  // Constancia: cuántas series se hicieron cada día
+  const seriesPorFecha = {};
+  series.forEach((s) => {
+    const f = fechaDeSesion[s.sesion_id];
+    if (s.hecho && f) seriesPorFecha[f] = (seriesPorFecha[f] || 0) + 1;
+  });
+  const fechas = [...new Set(sesiones.map((s) => s.fecha))];
+  const nivel = {};
+  fechas.forEach((f) => { nivel[f] = (seriesPorFecha[f] || 0) >= 10 ? 2 : 1; });
+
+  const en30 = fechas.filter((f) => diasDesde(f) < 30).length;
+  const levantado = series.reduce((t, s) => {
+    const f = fechaDeSesion[s.sesion_id];
+    return s.hecho && f && diasDesde(f) < 30 ? t + (Number(s.peso) || 0) * (s.reps || 0) : t;
+  }, 0);
+
+  const ejercicios = puntosPorEjercicio(series, fechaDeSesion)
+    .sort((a, b) => b.puntos[b.puntos.length - 1].fecha.localeCompare(a.puntos[a.puntos.length - 1].fecha));
+  estado.progreso = { userId, ejercicios };
+
+  const filaEjercicio = (e) => {
+    const ult = e.puntos.slice(-8);
+    const actual = ult[ult.length - 1].valor;
+    const dif = Math.round((actual - ult[0].valor) * 10) / 10;
+    const cambio = ult.length < 2 ? '<span class="plano">1 sesión</span>'
+      : dif > 0 ? `<span class="sube">+${dif}</span>`
+      : dif < 0 ? `<span class="baja">−${Math.abs(dif)}</span>`
+      : '<span class="plano">igual</span>';
+    const ej = estado.ejercicios[e.slug];
+    return `
+      <button class="fila-ej" data-ej="${e.slug}">
+        <span class="fe-info"><b>${ej?.nombre || e.slug}</b><small>${ej?.musculo || ''}</small></span>
+        ${chispa(ult.map((p) => p.valor))}
+        <span class="fe-kg"><b>${actual} ${e.unidad}</b><small>${cambio}</small></span>
+      </button>`;
+  };
+
+  $('#progreso-cuerpo').innerHTML = `
+    <div class="resumen">
+      <div class="resumen-item"><b>${en30}</b><span>en 30 días</span></div>
+      <div class="resumen-item"><b>${semanasSeguidas(fechas)}</b><span>semanas seguidas</span></div>
+      <div class="resumen-item"><b>${formatoKilos(levantado)}</b><span>levantado en 30 días</span></div>
+    </div>
+
+    <h2 class="titulo-seccion">Constancia</h2>
+    <div class="caja-mapa">
+      ${mapaConstancia(nivel, { celda: 20, hueco: 4 })}
+      <div class="mapa-pie"><span>Hace 12 semanas</span><span>Esta semana</span></div>
+    </div>
+
+    <h2 class="titulo-seccion">Cargas</h2>
+    <p class="nota-seccion">Últimas 8 sesiones de cada ejercicio. Toca uno para ver el detalle.</p>
+    <div class="lista-ej">${ejercicios.map(filaEjercicio).join('')}</div>`;
+
+  $('#progreso-cuerpo').querySelectorAll('[data-ej]').forEach((b) => {
+    b.addEventListener('click', () => abrirHistorial(b.dataset.ej, userId));
+  });
+}
+
+alPulsar('#btn-volver-de-progreso', () => (estado.volverDeProgreso || cargarCatalogo)());
+alPulsar('#btn-progreso-inicio', () =>
+  abrirProgreso(estado.usuario.id, estado.nombre, cargarInicio));
+alPulsar('#btn-progreso-alumno', () => {
+  const id = estado.alumnoAbierto;
+  abrirProgreso(id, estado.perfilesAlumnos?.[id]?.nombre || 'Alumno', () => abrirAlumno(id));
+});
+
+// Estado de un alumno según cuándo entrenó por última vez
+function estadoAlumno(ultima) {
+  const n = diasDesde(ultima);
+  if (n === null) return { clase: 'grave', texto: 'Sin entrenar' };
+  if (n <= 7) return { clase: 'ok', texto: relativo(ultima) };
+  if (n <= 14) return { clase: 'alerta', texto: `Hace ${n} días` };
+  return { clase: 'grave', texto: relativo(ultima) };
+}
+
+const mapaMini = (fechas) => {
+  const nivel = {}; fechas.forEach((f) => { nivel[f] = 2; });
+  return mapaConstancia(nivel, { celda: 7, hueco: 2 });
+};
+
 // ------------------------------------------------------------
 //  Lista de alumnos
 // ------------------------------------------------------------
@@ -546,22 +832,31 @@ async function abrirAlumnos() {
 
   const porUsuario = {};
   (ses || []).forEach((x) => {
-    const u = (porUsuario[x.user_id] ||= { n: 0, ultima: null });
+    const u = (porUsuario[x.user_id] ||= { n: 0, ultima: null, fechas: [] });
     u.n++;
+    u.fechas.push(x.fecha);
     if (!u.ultima || x.fecha > u.ultima) u.ultima = x.fecha;
   });
+  const sinDatos = { n: 0, ultima: null, fechas: [] };
 
-  $('#lista-alumnos').innerHTML = (perfiles || []).map((p) => {
-    const d = porUsuario[p.id] || { n: 0, ultima: null };
-    return `
-      <button class="tarjeta-alumno" data-alumno="${p.id}">
-        <span class="inicial">${(p.nombre || '?').charAt(0).toUpperCase()}</span>
-        <span class="alumno-info">
-          <h3>${p.nombre}</h3>
-          <p>${d.n} ${d.n === 1 ? 'entrenamiento' : 'entrenamientos'} · ${relativo(d.ultima)}</p>
-        </span>
-      </button>`;
-  }).join('');
+  // Arriba quien lleva más tiempo sin entrenar
+  const orden = (p) => diasDesde((porUsuario[p.id] || sinDatos).ultima) ?? Infinity;
+  $('#lista-alumnos').innerHTML = (perfiles || [])
+    .sort((a, b) => orden(b) - orden(a))
+    .map((p) => {
+      const d = porUsuario[p.id] || sinDatos;
+      const e = estadoAlumno(d.ultima);
+      return `
+        <button class="tarjeta-alumno" data-alumno="${p.id}">
+          <span class="inicial">${(p.nombre || '?').charAt(0).toUpperCase()}</span>
+          <span class="alumno-info">
+            <h3>${p.nombre}</h3>
+            <p><span class="chip ${e.clase}">${e.texto}</span></p>
+            <p>${d.n} ${d.n === 1 ? 'entrenamiento' : 'entrenamientos'}</p>
+          </span>
+          <span class="tp-mapa">${mapaMini(d.fechas)}</span>
+        </button>`;
+    }).join('');
 
   $('#lista-alumnos').querySelectorAll('[data-alumno]').forEach((b) => {
     b.addEventListener('click', () => abrirAlumno(b.dataset.alumno));
@@ -1722,43 +2017,29 @@ alPulsar('#btn-reabrir', reabrirRutina);
 // ============================================================
 //  Historial por ejercicio
 // ============================================================
-async function abrirHistorial(slug) {
+async function abrirHistorial(slug, userId = estado.usuario.id) {
   const ej = estado.ejercicios[slug];
-  $('#hoja-titulo').textContent = ej.nombre;
+  $('#hoja-titulo').textContent = ej?.nombre || slug;
   $('#hoja-cuerpo').innerHTML = '<p class="vacio">Cargando…</p>';
   $('#hoja').classList.remove('oculto');
 
-  const { data, error } = await sb
-    .from('series_log')
-    .select('serie, peso, reps, sesiones!inner(fecha)')
-    .eq('user_id', estado.usuario.id)
-    .eq('ejercicio_slug', slug)
-    .not('peso', 'is', null)
-    .limit(200);
-
-  if (error || !data || !data.length) {
-    $('#hoja-cuerpo').innerHTML = '<p class="vacio">Todavía no tienes registros de este ejercicio.</p>';
-    return;
+  // Desde la pantalla de progreso ya están los datos; desde un
+  // entrenamiento se leen frescos, que acaban de cambiar.
+  let datos = !$('#vista-progreso').classList.contains('oculto')
+    && estado.progreso?.userId === userId
+    && estado.progreso.ejercicios.find((e) => e.slug === slug);
+  if (!datos) {
+    try {
+      const h = await leerHistorialDe(userId, slug);
+      datos = puntosPorEjercicio(h.series, h.fechaDeSesion)[0];
+    } catch { datos = null; }
   }
 
-  const porFecha = {};
-  data.forEach((r) => {
-    const f = r.sesiones.fecha;
-    (porFecha[f] ||= []).push(r);
-  });
-
-  $('#hoja-cuerpo').innerHTML = Object.keys(porFecha)
-    .sort().reverse().slice(0, 12)
-    .map((f) => {
-      const series = porFecha[f].sort((a, b) => a.serie - b.serie);
-      return `
-        <div class="hist-fila">
-          <span class="hist-fecha">${fechaCorta(f)}</span>
-          <span class="hist-pesos">
-            ${series.map((s) => `<span class="hist-peso">${nDecimal(s.peso)} kg${s.reps ? ` × ${s.reps}` : ''}</span>`).join('')}
-          </span>
-        </div>`;
-    }).join('');
+  if (!datos?.puntos.length) {
+    $('#hoja-cuerpo').innerHTML = '<p class="vacio">Todavía no hay registros de este ejercicio.</p>';
+    return;
+  }
+  $('#hoja-cuerpo').innerHTML = graficaEjercicio(datos, ej?.nombre || slug) + filasHistorial(datos.puntos);
 }
 
 alPulsar('#hoja', (e) => {
