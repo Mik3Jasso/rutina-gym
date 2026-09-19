@@ -165,6 +165,7 @@ alumnos, y de nadie más; no puede modificar nada de ellos.
 - **Política de contenido** (`<meta http-equiv="Content-Security-Policy">` en `index.html`): sólo corre código de este sitio y sólo se conecta a Supabase. Si se agrega otro servicio, hay que añadirlo ahí.
 - **Todo texto que escribe una persona** (nombres, notas) pasa por `escapar()` antes de ir al HTML.
 - **Catálogo**: sólo se pueden poner en él rutinas del sistema o propias (`privado.rutina_asignable`); el entrenador, sólo las suyas a sus alumnos. De un catálogo sólo se cambia `activa`.
+- **Registro sólo por invitación** (`supabase/2026-09-19_invitaciones.sql`): crear cuenta pide el código de un entrenador (queda como su alumno) o una invitación de `privado.invitaciones`. Un trigger en `auth.users` rechaza el alta sin código válido. Para una invitación nueva, en el SQL de Supabase: `select privado.nueva_invitacion(usos, dias, 'nota');`. Ojo: por lo mismo, "Add user" desde el panel de Supabase también será rechazado.
 - **Auditoría del 19 sep 2026**: `supabase/2026-09-19_auditoria.sql`, con lo que se cerró y por qué.
 
 ## Despliegue
