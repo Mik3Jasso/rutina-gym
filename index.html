@@ -13,7 +13,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=202609182254">
+<link rel="stylesheet" href="css/styles.css?v=202609190056">
 </head>
 <body>
 
@@ -174,6 +174,12 @@
     <input id="in-nombre-rutina" placeholder="Por ejemplo: Fuerza · octubre" autocomplete="off">
   </label>
 
+  <label class="campo">
+    <span>Notas para quien la haga <small>(opcional)</small></span>
+    <textarea id="in-notas-rutina" rows="4" maxlength="2000"
+      placeholder="Por ejemplo: descansa 60 segundos entre series. Si una serie te sale fácil, sube el peso en la siguiente."></textarea>
+  </label>
+
   <h2 class="titulo-seccion">Días</h2>
   <div id="editor-dias" class="editor-dias"></div>
   <button id="btn-agregar-dia" class="btn-agregar">+ Agregar día</button>
@@ -200,6 +206,7 @@
   </header>
 
   <div class="resumen" id="resumen-semana"></div>
+  <div id="rutina-notas" class="notas-rutina oculto"></div>
   <button id="btn-progreso-inicio" class="enlace-progreso">Ver mi progreso <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
 
   <h2 class="titulo-seccion">Los días</h2>
@@ -290,6 +297,6 @@
   <button id="fallo-cerrar" class="fallo-cerrar" aria-label="Cerrar aviso">✕</button>
 </div>
 
-<script type="module" src="js/app.js?v=202609182254"></script>
+<script type="module" src="js/app.js?v=202609190056"></script>
 </body>
 </html>

@@ -851,3 +851,21 @@ input{font-family:inherit}
 .grafica{width:100%;height:auto;display:block;margin-bottom:14px}
 .grafica .g-eje{font-size:10.5px;fill:var(--muted-2);font-variant-numeric:tabular-nums}
 .grafica .g-reps{font-size:12px;font-weight:600;fill:var(--muted);font-variant-numeric:tabular-nums}
+
+/* ============ NOTAS DE LA RUTINA ============ */
+.campo textarea{
+  width:100%;resize:vertical;min-height:96px;padding:13px 14px;border-radius:12px;
+  background:var(--surface);border:1px solid var(--borde);color:var(--texto);
+  font:inherit;font-size:15px;line-height:1.5;
+}
+.campo textarea:focus{outline:none;border-color:var(--acento)}
+.campo span small{font-weight:400;color:var(--muted-2);text-transform:none;letter-spacing:0}
+.notas-rutina{
+  background:var(--acento-suave);border-radius:var(--radio);
+  padding:15px 17px;margin:-8px 0 26px;
+}
+.notas-rutina h3{
+  font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--acento);margin:0 0 6px;
+}
+.notas-rutina p{margin:0;font-size:15px;line-height:1.55;white-space:pre-line;overflow-wrap:anywhere}
+.campo textarea::placeholder{color:var(--muted-2)}

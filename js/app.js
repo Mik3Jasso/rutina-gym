@@ -1,5 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.58.0';
-import { DIBUJOS, urlVideo } from './rutina.js?v=202609182254';
+import { DIBUJOS, urlVideo } from './rutina.js?v=202609190056';
 
 // ------------------------------------------------------------
 //  Conexión. Esta llave es pública por diseño: lo que protege
@@ -112,6 +112,10 @@ const fechaLarga = (iso) => {
                  'julio','agosto','septiembre','octubre','noviembre','diciembre'];
   return `${d} de ${meses[m - 1]} de ${a}`;
 };
+
+// Para meter en el HTML texto que escribió una persona
+const escapar = (t) => String(t ?? '').replace(/[&<>"']/g, (c) =>
+  ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 
 const nDecimal = (v) => (v === null || v === undefined || v === '' ? '' : String(Number(v)));
 
@@ -294,7 +298,7 @@ function pintarTiraEntrenador() {
   if (estado.entrenador) {
     tira.innerHTML = `
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 12a4 4 0 100-8 4 4 0 000 8zM4 20a8 8 0 0116 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-      <div><b>Te entrena ${estado.entrenador.nombre}</b>
+      <div><b>Te entrena ${escapar(estado.entrenador.nombre)}</b>
       <span>Las rutinas que te asigne aparecen aquí</span></div>`;
     tira.classList.remove('oculto');
   } else if (estado.perfil?.es_entrenador) {
@@ -328,7 +332,7 @@ function abrirMenu() {
     : '';
 
   const miEntrenador = estado.entrenador
-    ? `<p style="margin:0;font-size:15px">Te entrena <b>${estado.entrenador.nombre}</b>.</p>`
+    ? `<p style="margin:0;font-size:15px">Te entrena <b>${escapar(estado.entrenador.nombre)}</b>.</p>`
     : p.es_entrenador
     ? ''
     : `<div class="fila-codigo">
@@ -424,7 +428,7 @@ async function abrirBiblioteca() {
               <svg viewBox="0 0 48 48" aria-hidden="true"><path d="M6 20h4v8H6zM38 20h4v8h-4zM12 16h5v16h-5zM31 16h5v16h-5zM17 22h14v4H17z"/></svg>
             </span>
             <span class="rutina-info">
-              <h3>${r.nombre}</h3>
+              <h3>${escapar(r.nombre)}</h3>
               <p>Creada el ${fechaLarga(r.creada)} · ${repartoTexto(r.id)}</p>
             </span>
             <span class="rutina-flecha">
@@ -479,7 +483,7 @@ async function abrirAlumno(alumnoId) {
               <svg viewBox="0 0 48 48" aria-hidden="true"><path d="M6 20h4v8H6zM38 20h4v8h-4zM12 16h5v16h-5zM31 16h5v16h-5zM17 22h14v4H17z"/></svg>
             </span>
             <span class="rutina-info">
-              <h3>${r.nombre}${x.activa ? '<span class="insignia-activa">activa</span>' : ''}</h3>
+              <h3>${escapar(r.nombre)}${x.activa ? '<span class="insignia-activa">activa</span>' : ''}</h3>
               <p>Creada el ${fechaLarga(r.creada)}</p>
             </span>
           </div>`;
@@ -510,7 +514,7 @@ async function asignarExistente() {
   $('#hoja-cuerpo').innerHTML = libres.length
     ? libres.map((r) => `
         <button class="resultado" data-asignar-rutina="${r.id}">
-          <div><b>${r.nombre}</b><small>Creada el ${fechaLarga(r.creada)}</small></div>
+          <div><b>${escapar(r.nombre)}</b><small>Creada el ${fechaLarga(r.creada)}</small></div>
         </button>`).join('')
     : '<p class="vacio">No te queda ninguna rutina por asignarle. Arma una nueva.</p>';
   $('#hoja').classList.remove('oculto');
@@ -671,7 +675,7 @@ function graficaEjercicio(ej, nombre) {
   const resumen = `${nombre}: de ${primero.valor} a ${ultimo.valor} ${ej.unidad} entre el ${fechaCorta(primero.fecha)} y el ${fechaCorta(ultimo.fecha)}`;
   return `
     <p class="g-titulo">${ej.unidad === 'kg' ? 'Serie más pesada de cada sesión, en kilos' : 'Mejor serie de cada sesión, en repeticiones'}</p>
-    <svg class="grafica" viewBox="0 0 ${W} ${H}" role="img" aria-label="${resumen}">
+    <svg class="grafica" viewBox="0 0 ${W} ${H}" role="img" aria-label="${escapar(resumen)}">
       ${rejilla}
       <path d="${linea}" fill="none" stroke="var(--acento)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
       ${abajo}
@@ -753,7 +757,7 @@ async function abrirProgreso(userId, nombre, volver) {
     const ej = estado.ejercicios[e.slug];
     return `
       <button class="fila-ej" data-ej="${e.slug}">
-        <span class="fe-info"><b>${ej?.nombre || e.slug}</b><small>${ej?.musculo || ''}</small></span>
+        <span class="fe-info"><b>${escapar(ej?.nombre || e.slug)}</b><small>${escapar(ej?.musculo)}</small></span>
         ${chispa(ult.map((p) => p.valor))}
         <span class="fe-kg"><b>${actual} ${e.unidad}</b><small>${cambio}</small></span>
       </button>`;
@@ -848,9 +852,9 @@ async function abrirAlumnos() {
       const e = estadoAlumno(d.ultima);
       return `
         <button class="tarjeta-alumno" data-alumno="${p.id}">
-          <span class="inicial">${(p.nombre || '?').charAt(0).toUpperCase()}</span>
+          <span class="inicial">${escapar((p.nombre || '?').charAt(0).toUpperCase())}</span>
           <span class="alumno-info">
-            <h3>${p.nombre}</h3>
+            <h3>${escapar(p.nombre)}</h3>
             <p><span class="chip ${e.clase}">${e.texto}</span></p>
             <p>${d.n} ${d.n === 1 ? 'entrenamiento' : 'entrenamientos'}</p>
           </span>
@@ -869,7 +873,7 @@ alPulsar('#btn-volver-catalogo', cargarCatalogo);
 //  Constructor de rutinas
 // ============================================================
 function nuevaRutina() {
-  estado.editor = { id: null, nombre: '', dias: [{ nombre: '', ejercicios: [] }], asignar: new Set() };
+  estado.editor = { id: null, nombre: '', notas: '', dias: [{ nombre: '', ejercicios: [] }], asignar: new Set() };
   abrirEditor('Rutina nueva');
 }
 
@@ -885,6 +889,7 @@ async function editarRutina(rutinaId) {
   estado.editor = {
     id: rutinaId,
     nombre: def.nombre,
+    notas: def.notas || '',
     dias: def.dias.map((d) => ({
       nombre: d.nombre,
       ejercicios: d.bloques.flatMap((bloque, bi) =>
@@ -898,6 +903,7 @@ async function editarRutina(rutinaId) {
 function abrirEditor(titulo) {
   const ed = estado.editor;
   $('#in-nombre-rutina').value = ed.nombre || '';
+  $('#in-notas-rutina').value = ed.notas || '';
   $('#editor-titulo').textContent = titulo;
   $('#editor-nota').textContent = '';
   $('#btn-publicar-rutina').textContent = ed.id ? 'Guardar cambios' : 'Guardar rutina';
@@ -913,7 +919,7 @@ function pintarEditor() {
     <section class="dia-editor" data-dia="${di}">
       <div class="dia-editor-cab">
         <span class="num">${di + 1}</span>
-        <input value="${(d.nombre || '').replace(/"/g, '&quot;')}"
+        <input value="${escapar(d.nombre)}"
                placeholder="Nombre del día (pecho, pierna…)"
                data-nombre-dia="${di}" aria-label="Nombre del día ${di + 1}">
         <button class="btn-quitar" data-quitar-dia="${di}" aria-label="Quitar día">✕</button>
@@ -932,7 +938,7 @@ function pintarEditor() {
         const marcado = ed.asignar.has(a.alumno_id);
         return `<label class="chip-alumno ${marcado ? 'marcado' : ''}">
           <input type="checkbox" data-asignar="${a.alumno_id}" ${marcado ? 'checked' : ''}>
-          <span>${p?.nombre || 'Alumno'}</span>
+          <span>${escapar(p?.nombre || 'Alumno')}</span>
         </label>`;
       }).join('') +
       `<label class="chip-alumno ${ed.asignar.has(estado.usuario.id) ? 'marcado' : ''}">
@@ -949,8 +955,8 @@ function tarjetaEjercicioEditor(di, ei, e) {
   return `
     <div class="ej-editor ${e.juntoAlAnterior ? 'enlazado' : ''}">
       <div class="ej-editor-cab">
-        <b>${ej?.nombre || e.id}</b>
-        <small>${ej?.musculo || ''}</small>
+        <b>${escapar(ej?.nombre || e.id)}</b>
+        <small>${escapar(ej?.musculo)}</small>
         <button class="btn-quitar" data-quitar-ej="${di}.${ei}" aria-label="Quitar ejercicio">✕</button>
       </div>
       <div class="series-editor">
@@ -1048,6 +1054,9 @@ alPulsar('#btn-agregar-dia', () => {
 alPulsar('#btn-cancelar-editor', () => {
   if (confirm('¿Descartar esta rutina?')) { estado.editor = null; salirDelEditor(); }
 });
+$('#in-notas-rutina')?.addEventListener('input', (e) => {
+  estado.editor.notas = e.target.value;
+});
 $('#in-nombre-rutina')?.addEventListener('input', (e) => {
   estado.editor.nombre = e.target.value;
   $('#editor-titulo').textContent = e.target.value.trim() || 'Rutina nueva';
@@ -1073,7 +1082,7 @@ function abrirBuscador(di) {
       ? lista.map((e) => `
         <button class="resultado" data-elegir="${e.id}">
           <span class="mini">${e.svg || '<span class="sin-dibujo">sin<br>dibujo</span>'}</span>
-          <div><b>${e.nombre}</b><small>${e.musculo} · ${(e.equipo || []).join(' + ')}</small></div>
+          <div><b>${escapar(e.nombre)}</b><small>${escapar(e.musculo)} · ${(e.equipo || []).join(' + ')}</small></div>
         </button>`).join('')
       : '<p class="vacio">Ningún ejercicio coincide.</p>';
   };
@@ -1098,6 +1107,7 @@ async function guardarRutina() {
   const nota = $('#editor-nota');
 
   const nombre = (ed.nombre || '').trim();
+  const notas = (ed.notas || '').trim() || null;
   if (!nombre) { nota.textContent = 'Ponle un nombre a la rutina.'; return; }
   const vacios = ed.dias.filter((d) => !d.ejercicios.length).length;
   if (vacios) { nota.textContent = 'Hay días sin ejercicios. Quítalos o agrégales algo.'; return; }
@@ -1110,14 +1120,14 @@ async function guardarRutina() {
 
   try {
     if (ed.id) {
-      const { error: eN } = await sb.from('rutinas').update({ nombre }).eq('id', ed.id);
+      const { error: eN } = await sb.from('rutinas').update({ nombre, notas }).eq('id', ed.id);
       if (eN) throw eN;
       // Reescribir los días: al borrarlos se van sus ejercicios en cascada
       const { error: eB } = await sb.from('rutina_dias').delete().eq('rutina_id', ed.id);
       if (eB) throw eB;
     } else {
       const { error: e1 } = await sb.from('rutinas').insert({
-        id, nombre, creador_id: estado.usuario.id, por_defecto: false,
+        id, nombre, notas, creador_id: estado.usuario.id, por_defecto: false,
       });
       if (e1) throw e1;
     }
@@ -1217,7 +1227,7 @@ async function cargarDefinicionRutina(rutinaId) {
   if (estado.rutinas[rutinaId]?.dias) return estado.rutinas[rutinaId];
 
   const { data: cab, error: e1 } = await sb
-    .from('rutinas').select('id, nombre, creada').eq('id', rutinaId).maybeSingle();
+    .from('rutinas').select('id, nombre, creada, creador_id, notas').eq('id', rutinaId).maybeSingle();
   if (e1 || !cab) return null;
 
   const { data: dias, error: e2 } = await sb
@@ -1297,7 +1307,7 @@ async function cargarCatalogo() {
             <svg viewBox="0 0 48 48" aria-hidden="true"><path d="M6 20h4v8H6zM38 20h4v8h-4zM12 16h5v16h-5zM31 16h5v16h-5zM17 22h14v4H17z"/></svg>
           </span>
           <span class="rutina-info">
-            <h3>${m.def.nombre}${m.activa ? '<span class="insignia-activa">activa</span>' : ''}</h3>
+            <h3>${escapar(m.def.nombre)}${m.activa ? '<span class="insignia-activa">activa</span>' : ''}</h3>
             <p>Creada el ${fechaLarga(m.def.creada)}</p>
           </span>
           <span class="rutina-flecha">
@@ -1345,6 +1355,18 @@ alPulsar('#btn-catalogo', cargarCatalogo);
 // ============================================================
 //  Días de la rutina abierta
 // ============================================================
+// Lo que el entrenador escribió para quien hace la rutina
+function pintarNotasRutina() {
+  const r = estado.rutina;
+  const caja = $('#rutina-notas');
+  if (!r?.notas?.trim()) { caja.classList.add('oculto'); return; }
+  const quien = r.creador_id === estado.usuario.id ? 'Tus notas para quien la haga'
+    : r.creador_id && r.creador_id === estado.entrenador?.id ? `Notas de ${estado.entrenador.nombre}`
+    : 'Notas de la rutina';
+  caja.innerHTML = `<h3>${escapar(quien)}</h3><p>${escapar(r.notas.trim())}</p>`;
+  caja.classList.remove('oculto');
+}
+
 async function cargarInicio() {
   const { data } = await sb
     .from('sesiones')
@@ -1374,6 +1396,8 @@ async function cargarInicio() {
     <div class="resumen-item"><b>${total}</b><span>entrenamientos</span></div>
     <div class="resumen-item"><b style="font-size:19px;padding-top:5px">${ultima ? fechaCorta(ultima) : '—'}</b><span>última vez</span></div>`;
 
+  pintarNotasRutina();
+
   $('#lista-dias').innerHTML = estado.rutina.dias.map((d) => {
     const fecha = estado.ultimasFechas[d.dia];
     const esHoy = fecha && diasDesde(fecha) === 0;
@@ -1384,7 +1408,7 @@ async function cargarInicio() {
       <button class="tarjeta-dia" data-dia="${d.dia}">
         <span class="dia-num" style="--tono:${d.tono};--tono-suave:${d.tono}22">${d.dia}</span>
         <span class="dia-info">
-          <h3>${d.nombre}${terminadoHoy
+          <h3>${escapar(d.nombre)}${terminadoHoy
             ? '<span class="insignia-fin">terminado</span>'
             : esHoy ? '<span class="insignia-hoy">hoy</span>' : ''}</h3>
           <p>${sub}</p>
@@ -1600,19 +1624,19 @@ function tarjetaEjercicio(item) {
                  placeholder="${ant ? nDecimal(ant.peso) : 'kg'}"
                  value="${nDecimal(r.peso)}"
                  data-slug="${slug}" data-serie="${n}" data-campo="peso"
-                 aria-label="Peso serie ${n} de ${ej.nombre}">
+                 aria-label="Peso serie ${n} de ${escapar(ej.nombre)}">
         </td>
         <td class="celda-in">
           <input class="in-num" type="number" inputmode="numeric" step="1" min="0"
                  placeholder="${reps}"
                  value="${r.reps ?? ''}"
                  data-slug="${slug}" data-serie="${n}" data-campo="reps"
-                 aria-label="Repeticiones serie ${n} de ${ej.nombre}">
+                 aria-label="Repeticiones serie ${n} de ${escapar(ej.nombre)}">
         </td>
         <td class="celda-check">
           <button class="check" aria-pressed="${!!r.hecho}"
                   data-slug="${slug}" data-serie="${n}"
-                  aria-label="Marcar serie ${n} de ${ej.nombre}">
+                  aria-label="Marcar serie ${n} de ${escapar(ej.nombre)}">
             <svg viewBox="0 0 24 24"><path d="M4 12l6 6L20 6"/></svg>
           </button>
         </td>
@@ -1624,8 +1648,8 @@ function tarjetaEjercicio(item) {
       <button class="ej-cab" data-abrir="${slug}">
         <span class="ej-dibujo">${ej.svg}</span>
         <span class="ej-txt">
-          <h4>${ej.nombre}</h4>
-          <p class="ej-musculo">${ej.musculo}</p>
+          <h4>${escapar(ej.nombre)}</h4>
+          <p class="ej-musculo">${escapar(ej.musculo)}</p>
         </span>
         <span class="ej-estado">
           <span class="pastilla ${completo ? 'completo' : ''}">${hechas}/${series.length}</span>
@@ -1636,8 +1660,8 @@ function tarjetaEjercicio(item) {
         <div class="ej-visual">
           <span class="ej-visual-svg">${ej.svg}</span>
           <span class="ej-visual-txt">
-            <p>${ej.tecnica}</p>
-            <a class="btn-video" href="${urlVideo(ej.nombre)}" target="_blank" rel="noopener noreferrer">
+            <p>${escapar(ej.tecnica)}</p>
+            <a class="btn-video" href="${escapar(urlVideo(ej.nombre))}" target="_blank" rel="noopener noreferrer">
               <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg> Ver técnica en video
             </a>
           </span>
@@ -2004,7 +2028,7 @@ function mostrarResumen() {
     const hechas = e.series.filter((_, i) => estado.registros[`${s}:${i + 1}`]?.hecho).length;
     const pesos = e.series.map((_, i) => estado.registros[`${s}:${i + 1}`])
       .filter((r) => r?.hecho && r.peso != null).map((r) => nDecimal(r.peso));
-    return `<li><span style="color:var(--texto)">${estado.ejercicios[s].nombre}</span>
+    return `<li><span style="color:var(--texto)">${escapar(estado.ejercicios[s].nombre)}</span>
       <span>${hechas ? pesos.join(' · ') + ' kg' : '—'}</span></li>`;
   }).join('');
 
@@ -2018,7 +2042,7 @@ function mostrarResumen() {
     </div>
     <p class="resumen-detalle">
       ${estado.cardio ? 'Cardio hecho. ' : 'Falta el cardio de 20 a 30 minutos. '}
-      Tus pesos de hoy aparecerán como referencia la próxima vez que entrenes ${estado.dia.nombre.toLowerCase()}.
+      Tus pesos de hoy aparecerán como referencia la próxima vez que entrenes ${escapar(estado.dia.nombre.toLowerCase())}.
     </p>
     <ul class="resumen-lista">${porEjercicio}</ul>
     <button class="btn-primario" data-cerrar-hoja>Listo</button>`;
