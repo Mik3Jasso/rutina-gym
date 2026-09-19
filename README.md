@@ -159,6 +159,14 @@ para crear un vínculo es la función, que exige conocer el código. Un
 entrenador puede leer perfiles, sesiones, series y catálogo de sus
 alumnos, y de nadie más; no puede modificar nada de ellos.
 
+## Seguridad
+
+- **supabase-js** está copiado en `js/vendor/` (sacado del registro de npm, versión 2.58.0) en vez de cargarse de un CDN. Para actualizarlo: `npm pack @supabase/supabase-js@<versión>` y copiar `dist/umd/supabase.js`.
+- **Política de contenido** (`<meta http-equiv="Content-Security-Policy">` en `index.html`): sólo corre código de este sitio y sólo se conecta a Supabase. Si se agrega otro servicio, hay que añadirlo ahí.
+- **Todo texto que escribe una persona** (nombres, notas) pasa por `escapar()` antes de ir al HTML.
+- **Catálogo**: sólo se pueden poner en él rutinas del sistema o propias (`privado.rutina_asignable`); el entrenador, sólo las suyas a sus alumnos. De un catálogo sólo se cambia `activa`.
+- **Auditoría del 19 sep 2026**: `supabase/2026-09-19_auditoria.sql`, con lo que se cerró y por qué.
+
 ## Despliegue
 
 Antes de publicar, sellar los archivos con una versión:

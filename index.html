@@ -6,9 +6,9 @@
 <meta name="theme-color" content="#0d1117">
 <meta name="description" content="Rutina de gimnasio de 5 días con registro de pesos, repeticiones e historial.">
 <title>Rutina Gym</title>
-<!-- Sólo se ejecuta código de este sitio y de esm.sh, y sólo se habla con Supabase:
+<!-- Sólo se ejecuta código de este mismo sitio, y sólo se habla con Supabase:
      si algo lograra colarse en la página, no podría cargar scripts ni mandar datos fuera. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://esm.sh; connect-src 'self' https://xinxbdlribqrxqphozvh.supabase.co wss://xinxbdlribqrxqphozvh.supabase.co https://esm.sh; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; object-src 'none'; base-uri 'none'; form-action 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; connect-src 'self' https://xinxbdlribqrxqphozvh.supabase.co wss://xinxbdlribqrxqphozvh.supabase.co; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; object-src 'none'; base-uri 'none'; form-action 'self'">
 <meta name="referrer" content="no-referrer">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon.png">
@@ -17,7 +17,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=202609191847">
+<link rel="stylesheet" href="css/styles.css?v=202609191855">
 </head>
 <body>
 
@@ -301,6 +301,7 @@
   <button id="fallo-cerrar" class="fallo-cerrar" aria-label="Cerrar aviso">✕</button>
 </div>
 
-<script type="module" src="js/app.js?v=202609191847"></script>
+<script src="js/vendor/supabase-2.58.0.js"></script>
+<script type="module" src="js/app.js?v=202609191855"></script>
 </body>
 </html>

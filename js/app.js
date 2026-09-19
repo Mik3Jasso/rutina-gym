@@ -1,5 +1,7 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.58.0';
-import { DIBUJOS, urlVideo } from './rutina.js?v=202609191847';
+// supabase-js vive copiado en js/vendor (sacado del registro de npm):
+// así la app no depende de que un CDN ajeno sirva código honesto.
+const { createClient } = window.supabase;
+import { DIBUJOS, urlVideo } from './rutina.js?v=202609191855';
 
 // ------------------------------------------------------------
 //  Conexión. Esta llave es pública por diseño: lo que protege
@@ -359,6 +361,7 @@ function abrirMenu() {
     ${seccionEntrenador}
     ${miEntrenador ? `<div class="menu-seccion"><h3>Tu entrenador</h3>${miEntrenador}</div>` : ''}
     <div class="menu-seccion">
+      <button class="menu-boton" data-clave>Cambiar contraseña</button>
       <button class="menu-boton peligro" data-salir>Cerrar sesión</button>
     </div>`;
   $('#hoja').classList.remove('oculto');
@@ -374,6 +377,7 @@ function abrirMenu() {
     $('#hoja').classList.add('oculto'); abrirAlumnos();
   });
   $('#hoja-cuerpo').querySelector('#btn-unirme')?.addEventListener('click', unirme);
+  $('#hoja-cuerpo').querySelector('[data-clave]')?.addEventListener('click', abrirCambioClave);
   $('#hoja-cuerpo').querySelector('[data-salir]')?.addEventListener('click', async () => {
     if (!confirm('¿Cerrar sesión?')) return;
     await sb.auth.signOut();
@@ -381,6 +385,49 @@ function abrirMenu() {
   });
 }
 
+
+function abrirCambioClave() {
+  $('#hoja-titulo').textContent = 'Cambiar contraseña';
+  $('#hoja-cuerpo').innerHTML = `
+    <form id="form-clave" class="menu-seccion" autocomplete="on">
+      <input type="email" autocomplete="username" value="${escapar(estado.usuario.email || '')}" hidden>
+      <label class="campo"><span>Contraseña nueva</span>
+        <input type="password" id="in-clave-nueva" autocomplete="new-password" minlength="8" required
+               placeholder="Mínimo 8 caracteres"></label>
+      <label class="campo"><span>Repítela</span>
+        <input type="password" id="in-clave-repetir" autocomplete="new-password" minlength="8" required></label>
+      <p id="error-clave" class="error oculto" style="margin:0 0 12px"></p>
+      <button class="btn-primario" id="btn-guardar-clave">Guardar contraseña</button>
+    </form>`;
+  $('#hoja').classList.remove('oculto');
+  $('#in-clave-nueva').focus();
+
+  $('#form-clave').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const nueva = $('#in-clave-nueva').value;
+    const err = $('#error-clave');
+    const btn = $('#btn-guardar-clave');
+    const falla = (t) => { err.textContent = t; err.classList.remove('oculto'); };
+    err.classList.add('oculto');
+    if (nueva.length < 8) return falla('Usa al menos 8 caracteres.');
+    if (nueva !== $('#in-clave-repetir').value) return falla('Las dos contraseñas no coinciden.');
+
+    btn.disabled = true; btn.textContent = 'Guardando…';
+    const { error } = await sb.auth.updateUser({ password: nueva });
+    btn.disabled = false; btn.textContent = 'Guardar contraseña';
+    if (error) {
+      const m = (error.message || '').toLowerCase();
+      return falla(
+        m.includes('different') ? 'Es la misma que ya tenías. Elige otra.'
+        : m.includes('pwned') || m.includes('weak') || m.includes('known to be')
+          ? 'Esa contraseña es demasiado común o apareció en una filtración. Elige otra.'
+        : m.includes('reauth') ? 'Por seguridad, cierra sesión, vuelve a entrar e inténtalo de nuevo.'
+        : 'No se pudo cambiar. Revisa tu conexión.');
+    }
+    $('#hoja').classList.add('oculto');
+    avisar('Contraseña cambiada');
+  });
+}
 
 async function unirme() {
   const campo = $('#in-codigo');

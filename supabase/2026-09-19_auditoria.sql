@@ -79,3 +79,10 @@ $$;
 alter table public.sesiones drop constraint sesiones_dia_check;
 alter table public.sesiones add constraint sesiones_dia_check check (dia between 1 and 7);
 alter table public.rutina_dias add constraint rutina_dias_dia_check check (dia between 1 and 7);
+
+-- 8. (aplicado después) La función sólo la usan las políticas: fuera
+--    del esquema public para que la API no la exponga como RPC.
+create schema if not exists privado;
+revoke all on schema privado from public, anon;
+grant usage on schema privado to authenticated;
+alter function public.rutina_asignable(text) set schema privado;
