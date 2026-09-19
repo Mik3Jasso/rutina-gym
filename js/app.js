@@ -1,7 +1,7 @@
 // supabase-js vive copiado en js/vendor (sacado del registro de npm):
 // así la app no depende de que un CDN ajeno sirva código honesto.
 const { createClient } = window.supabase;
-import { DIBUJOS, urlVideo } from './rutina.js?v=202609191855';
+import { DIBUJOS, urlVideo } from './rutina.js?v=202609191912';
 
 // ------------------------------------------------------------
 //  Conexión. Esta llave es pública por diseño: lo que protege
@@ -203,7 +203,8 @@ document.querySelectorAll('.tab').forEach((t) => {
     document.querySelectorAll('.tab').forEach((x) => x.classList.remove('activo'));
     t.classList.add('activo');
     modoAuth = t.dataset.modo;
-    $('.campo-nombre').classList.toggle('oculto', modoAuth !== 'registro');
+    document.querySelectorAll('.campo-registro').forEach((c) =>
+      c.classList.toggle('oculto', modoAuth !== 'registro'));
     $('#btn-auth').textContent = modoAuth === 'registro' ? 'Crear cuenta' : 'Entrar';
     $('#in-clave').autocomplete = modoAuth === 'registro' ? 'new-password' : 'current-password';
     $('#in-clave').minLength = modoAuth === 'registro' ? 8 : 6;
@@ -217,6 +218,7 @@ $('#form-auth')?.addEventListener('submit', async (e) => {
   const correo = $('#in-correo').value.trim();
   const clave = $('#in-clave').value;
   const nombre = $('#in-nombre').value.trim();
+  const invitacion = $('#in-invitacion').value.trim().toUpperCase();
   const err = $('#auth-error');
   const btn = $('#btn-auth');
 
@@ -224,6 +226,13 @@ $('#form-auth')?.addEventListener('submit', async (e) => {
   const minimo = modoAuth === 'registro' ? 8 : 6;
   if (!correo || clave.length < minimo) {
     err.textContent = `Escribe tu correo y una contraseña de al menos ${minimo} caracteres.`;
+    err.classList.remove('oculto');
+    return;
+  }
+
+  // Crear cuenta es sólo por invitación: la base lo exige, aquí sólo se avisa antes
+  if (modoAuth === 'registro' && invitacion.length < 6) {
+    err.textContent = 'Para crear una cuenta necesitas un código de invitación. Pídeselo a tu entrenador.';
     err.classList.remove('oculto');
     return;
   }
@@ -237,7 +246,7 @@ $('#form-auth')?.addEventListener('submit', async (e) => {
       const { data, error } = await sb.auth.signUp({
         email: correo,
         password: clave,
-        options: { data: { nombre: nombre || correo.split('@')[0] } },
+        options: { data: { nombre: nombre || correo.split('@')[0], codigo: invitacion } },
       });
       if (error) throw error;
       // Las cuentas nacen confirmadas, asi que entramos de una vez.
@@ -257,6 +266,8 @@ $('#form-auth')?.addEventListener('submit', async (e) => {
       : m.includes('already registered') || m.includes('already been registered') ? 'Ese correo ya tiene cuenta. Entra con tu contraseña.'
       : m.includes('pwned') || m.includes('weak') || m.includes('known to be')
         ? 'Esa contraseña es demasiado común o apareció en una filtración. Elige otra.'
+      : modoAuth === 'registro' && m.includes('database error')
+        ? 'Ese código de invitación no es válido, ya venció o ya se usó.'
       : m.includes('rate') ? 'Demasiados intentos seguidos. Espera unos minutos e intenta otra vez.'
       : ex.message || 'No se pudo completar. Intenta de nuevo.';
     err.classList.remove('oculto');
