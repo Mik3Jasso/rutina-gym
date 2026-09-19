@@ -1,5 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.58.0';
-import { DIBUJOS, urlVideo } from './rutina.js?v=202609190056';
+import { DIBUJOS, urlVideo } from './rutina.js?v=202609191847';
 
 // ------------------------------------------------------------
 //  Conexión. Esta llave es pública por diseño: lo que protege
@@ -26,6 +26,7 @@ const alPulsar = (sel, fn, evento = 'click') => {
 // El día abierto queda en la URL y en la sesión del navegador: si el
 // teléfono descarta la página al cambiar de app, volvemos donde estabas.
 const CLAVE_UBICACION = 'rutina:dia';
+const MAX_DIAS = 7;   // la base no acepta más días por rutina
 
 function recordarUbicacion(rutinaId, numDia) {
   const marca = rutinaId ? (numDia ? `${rutinaId}/${numDia}` : rutinaId) : '';
@@ -39,7 +40,8 @@ function recordarUbicacion(rutinaId, numDia) {
 }
 
 function ubicacionGuardada() {
-  let marca = decodeURIComponent(location.hash.replace(/^#/, ''));
+  let marca = '';
+  try { marca = decodeURIComponent(location.hash.replace(/^#/, '')); } catch {}
   if (!marca) {
     try { marca = sessionStorage.getItem(CLAVE_UBICACION) || ''; } catch {}
   }
@@ -47,7 +49,7 @@ function ubicacionGuardada() {
   const [rutinaId, dia] = marca.split('/');
   if (!rutinaId) return null;
   const n = Number(dia);
-  return { rutinaId, dia: n >= 1 && n <= 5 ? n : null };
+  return { rutinaId, dia: Number.isInteger(n) && n >= 1 && n <= MAX_DIAS ? n : null };
 }
 const CLAVE_BORRADOR = 'rutina:borrador';
 
@@ -202,6 +204,8 @@ document.querySelectorAll('.tab').forEach((t) => {
     $('.campo-nombre').classList.toggle('oculto', modoAuth !== 'registro');
     $('#btn-auth').textContent = modoAuth === 'registro' ? 'Crear cuenta' : 'Entrar';
     $('#in-clave').autocomplete = modoAuth === 'registro' ? 'new-password' : 'current-password';
+    $('#in-clave').minLength = modoAuth === 'registro' ? 8 : 6;
+    $('#in-clave').placeholder = modoAuth === 'registro' ? 'Mínimo 8 caracteres' : 'Tu contraseña';
     $('#auth-error').classList.add('oculto');
   });
 });
@@ -214,8 +218,10 @@ $('#form-auth')?.addEventListener('submit', async (e) => {
   const err = $('#auth-error');
   const btn = $('#btn-auth');
 
-  if (!correo || clave.length < 6) {
-    err.textContent = 'Escribe tu correo y una contraseña de al menos 6 caracteres.';
+  // Las cuentas nuevas piden 8; las viejas de 6 siguen entrando.
+  const minimo = modoAuth === 'registro' ? 8 : 6;
+  if (!correo || clave.length < minimo) {
+    err.textContent = `Escribe tu correo y una contraseña de al menos ${minimo} caracteres.`;
     err.classList.remove('oculto');
     return;
   }
@@ -247,6 +253,8 @@ $('#form-auth')?.addEventListener('submit', async (e) => {
       m.includes('invalid login') ? 'Correo o contraseña incorrectos.'
       : m.includes('not confirmed') ? 'Esa cuenta quedó a medias. Avísale a Mike para reactivarla.'
       : m.includes('already registered') || m.includes('already been registered') ? 'Ese correo ya tiene cuenta. Entra con tu contraseña.'
+      : m.includes('pwned') || m.includes('weak') || m.includes('known to be')
+        ? 'Esa contraseña es demasiado común o apareció en una filtración. Elige otra.'
       : m.includes('rate') ? 'Demasiados intentos seguidos. Espera unos minutos e intenta otra vez.'
       : ex.message || 'No se pudo completar. Intenta de nuevo.';
     err.classList.remove('oculto');
@@ -920,7 +928,7 @@ function pintarEditor() {
       <div class="dia-editor-cab">
         <span class="num">${di + 1}</span>
         <input value="${escapar(d.nombre)}"
-               placeholder="Nombre del día (pecho, pierna…)"
+               maxlength="60" placeholder="Nombre del día (pecho, pierna…)"
                data-nombre-dia="${di}" aria-label="Nombre del día ${di + 1}">
         <button class="btn-quitar" data-quitar-dia="${di}" aria-label="Quitar día">✕</button>
       </div>
@@ -1048,6 +1056,10 @@ function salirDelEditor() {
   return estado.origenEditor ? abrirAlumno(estado.origenEditor) : abrirBiblioteca();
 }
 alPulsar('#btn-agregar-dia', () => {
+  if (estado.editor.dias.length >= MAX_DIAS) {
+    avisar(`Una rutina puede tener hasta ${MAX_DIAS} días`, true);
+    return;
+  }
   estado.editor.dias.push({ nombre: '', ejercicios: [] });
   pintarEditor();
 });
