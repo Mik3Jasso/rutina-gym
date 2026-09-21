@@ -1,7 +1,7 @@
 // supabase-js vive copiado en js/vendor (sacado del registro de npm):
 // así la app no depende de que un CDN ajeno sirva código honesto.
 const { createClient } = window.supabase;
-import { DIBUJOS, urlVideo } from './rutina.js?v=202609210533';
+import { DIBUJOS, urlVideo } from './rutina.js?v=202609210543';
 
 // ------------------------------------------------------------
 //  Conexión. Esta llave es pública por diseño: lo que protege
@@ -1005,6 +1005,9 @@ function etiquetasPersona(p) {
   return e.join('');
 }
 
+// Sin acentos ni mayúsculas: "jessica" encuentra a "Jéssica"
+const sinAcentos = (t) => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+
 function pintarPersonasAdmin() {
   const ps = estado.admin.personas;
   const entrenadores = ps.filter((p) => p.es_entrenador).length;
@@ -1012,7 +1015,14 @@ function pintarPersonasAdmin() {
   $('#vista-admin .saludo').textContent =
     `Administración · ${entrenadores} ${entrenadores === 1 ? 'entrenador' : 'entrenadores'}`;
 
-  $('#admin-personas').innerHTML = ps.map((p) => {
+  const q = sinAcentos($('#in-buscar-persona').value.trim());
+  const visibles = q
+    ? ps.filter((p) => sinAcentos(`${p.nombre} ${p.email}`).includes(q))
+    : ps;
+
+  $('#admin-personas').innerHTML = !visibles.length
+    ? `<p class="vacio">Nadie coincide con «${escapar($('#in-buscar-persona').value.trim())}».</p>`
+    : visibles.map((p) => {
     const quien = p.es_entrenador
       ? `Entrena a ${p.alumnos} · código ${escapar(p.codigo || '—')}`
       : p.entrenadores ? `Lo entrena ${escapar(p.entrenadores)}` : 'Sin entrenador';
@@ -1214,6 +1224,7 @@ function pintarBitacora(lista) {
 }
 
 alPulsar('#btn-volver-de-admin', cargarCatalogo);
+alPulsar('#in-buscar-persona', () => estado.admin && pintarPersonasAdmin(), 'input');
 
 // ============================================================
 //  Constructor de rutinas
