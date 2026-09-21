@@ -1,7 +1,7 @@
 // supabase-js vive copiado en js/vendor (sacado del registro de npm):
 // así la app no depende de que un CDN ajeno sirva código honesto.
 const { createClient } = window.supabase;
-import { DIBUJOS, urlVideo } from './rutina.js?v=202609191912';
+import { DIBUJOS, urlVideo } from './rutina.js?v=202609210506';
 
 // ------------------------------------------------------------
 //  Conexión. Esta llave es pública por diseño: lo que protege
@@ -264,9 +264,11 @@ $('#form-auth')?.addEventListener('submit', async (e) => {
       m.includes('invalid login') ? 'Correo o contraseña incorrectos.'
       : m.includes('not confirmed') ? 'Esa cuenta quedó a medias. Avísale a Mike para reactivarla.'
       : m.includes('already registered') || m.includes('already been registered') ? 'Ese correo ya tiene cuenta. Entra con tu contraseña.'
-      : m.includes('pwned') || m.includes('weak') || m.includes('known to be')
+      : m.includes('pwned') || m.includes('known to be')
         ? 'Esa contraseña es demasiado común o apareció en una filtración. Elige otra.'
-      : modoAuth === 'registro' && m.includes('database error')
+      : m.includes('at least') || m.includes('weak')
+        ? 'La contraseña es muy corta: usa al menos 8 caracteres.'
+      : m.includes('invitacion') || (modoAuth === 'registro' && m.includes('database error'))
         ? 'Ese código de invitación no es válido, ya venció o ya se usó.'
       : m.includes('rate') ? 'Demasiados intentos seguidos. Espera unos minutos e intenta otra vez.'
       : ex.message || 'No se pudo completar. Intenta de nuevo.';
