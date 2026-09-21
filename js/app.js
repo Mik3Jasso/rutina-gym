@@ -1,7 +1,7 @@
 // supabase-js vive copiado en js/vendor (sacado del registro de npm):
 // así la app no depende de que un CDN ajeno sirva código honesto.
 const { createClient } = window.supabase;
-import { DIBUJOS, urlVideo } from './rutina.js?v=202609210506';
+import { DIBUJOS, urlVideo } from './rutina.js?v=202609210533';
 
 // ------------------------------------------------------------
 //  Conexión. Esta llave es pública por diseño: lo que protege
@@ -262,6 +262,7 @@ $('#form-auth')?.addEventListener('submit', async (e) => {
     const m = (ex.message || '').toLowerCase();
     err.textContent =
       m.includes('invalid login') ? 'Correo o contraseña incorrectos.'
+      : m.includes('banned') ? 'Esta cuenta está bloqueada. Habla con el administrador.'
       : m.includes('not confirmed') ? 'Esa cuenta quedó a medias. Avísale a Mike para reactivarla.'
       : m.includes('already registered') || m.includes('already been registered') ? 'Ese correo ya tiene cuenta. Entra con tu contraseña.'
       : m.includes('pwned') || m.includes('known to be')
@@ -286,7 +287,7 @@ alPulsar('#btn-menu', abrirMenu);
 // ============================================================
 async function cargarPerfil() {
   const { data } = await sb
-    .from('profiles').select('nombre, es_entrenador, codigo')
+    .from('profiles').select('nombre, es_entrenador, es_admin, codigo')
     .eq('id', estado.usuario.id).maybeSingle();
   estado.perfil = data || { nombre: '', es_entrenador: false, codigo: null };
   estado.nombre = estado.perfil.nombre || estado.usuario.email.split('@')[0];
@@ -365,8 +366,16 @@ function abrirMenu() {
        </div>
        <p id="error-codigo" class="error oculto" style="margin:10px 0 0"></p>`;
 
+  const seccionAdmin = p.es_admin
+    ? `<div class="menu-seccion"><h3>Administración</h3>
+         <button class="menu-boton" data-admin>Personas e invitaciones
+           <small>entrenadores, bloqueos</small></button>
+       </div>`
+    : '';
+
   $('#hoja-titulo').textContent = estado.nombre;
   $('#hoja-cuerpo').innerHTML = `
+    ${seccionAdmin}
     <div class="menu-seccion">
       <button class="menu-boton" data-mi-progreso>Mi progreso
         <small>constancia y cargas</small></button>
@@ -379,6 +388,9 @@ function abrirMenu() {
     </div>`;
   $('#hoja').classList.remove('oculto');
 
+  $('#hoja-cuerpo').querySelector('[data-admin]')?.addEventListener('click', () => {
+    $('#hoja').classList.add('oculto'); abrirAdmin();
+  });
   $('#hoja-cuerpo').querySelector('[data-mi-progreso]')?.addEventListener('click', () => {
     $('#hoja').classList.add('oculto');
     abrirProgreso(estado.usuario.id, estado.nombre, cargarCatalogo);
@@ -936,6 +948,272 @@ async function abrirAlumnos() {
 }
 
 alPulsar('#btn-volver-catalogo', cargarCatalogo);
+
+// ============================================================
+//  Administración (sólo la ve quien tiene es_admin). Todo pasa por
+//  funciones de la base que vuelven a comprobar que eres admin.
+// ============================================================
+const ERRORES_ADMIN = {
+  no_autorizado: 'Tu cuenta no es de administrador.',
+  no_a_ti_mismo: 'No puedes bloquear tu propia cuenta.',
+  es_admin: 'Una cuenta de administrador no se puede bloquear desde aquí.',
+  no_es_entrenador: 'Esa persona no es entrenador.',
+  mismo_usuario: 'Nadie puede entrenarse a sí mismo.',
+  no_existe: 'Esa cuenta ya no existe.',
+  usos_fuera_de_rango: 'Los usos van de 1 a 50.',
+  dias_fuera_de_rango: 'La duración va de 1 a 365 días.',
+};
+const mensajeAdmin = (error) => {
+  const m = error?.message || '';
+  const clave = Object.keys(ERRORES_ADMIN).find((k) => m.includes(k));
+  return clave ? ERRORES_ADMIN[clave] : 'No se pudo completar. Revisa tu conexión.';
+};
+
+// Llama una función de administración y avisa si falla
+async function rpcAdmin(nombre, args) {
+  const { data, error } = await sb.rpc(nombre, args);
+  if (error) { avisar(mensajeAdmin(error), true); return { ok: false }; }
+  return { ok: true, data };
+}
+
+async function abrirAdmin() {
+  mostrarVista('#vista-admin');
+  $('#admin-personas').innerHTML = '<p class="vacio">Cargando…</p>';
+  $('#admin-invitaciones').innerHTML = '';
+  $('#admin-bitacora').innerHTML = '';
+
+  const [personas, invitaciones, bitacora] = await Promise.all([
+    sb.rpc('admin_personas'), sb.rpc('admin_invitaciones'), sb.rpc('admin_bitacora'),
+  ]);
+  if (personas.error) {
+    $('#admin-personas').innerHTML = `<p class="vacio">${escapar(mensajeAdmin(personas.error))}</p>`;
+    return;
+  }
+  estado.admin = { personas: personas.data || [], porId: {} };
+  estado.admin.personas.forEach((p) => { estado.admin.porId[p.id] = p; });
+
+  pintarPersonasAdmin();
+  pintarInvitaciones(invitaciones.data || []);
+  pintarBitacora(bitacora.data || []);
+}
+
+function etiquetasPersona(p) {
+  const e = [];
+  if (p.es_admin) e.push('<span class="etiqueta admin">admin</span>');
+  if (p.es_entrenador) e.push('<span class="etiqueta entrenador">entrenador</span>');
+  if (p.bloqueada) e.push('<span class="etiqueta bloqueada">bloqueada</span>');
+  return e.join('');
+}
+
+function pintarPersonasAdmin() {
+  const ps = estado.admin.personas;
+  const entrenadores = ps.filter((p) => p.es_entrenador).length;
+  $('#admin-titulo').textContent = `${ps.length} ${ps.length === 1 ? 'persona' : 'personas'}`;
+  $('#vista-admin .saludo').textContent =
+    `Administración · ${entrenadores} ${entrenadores === 1 ? 'entrenador' : 'entrenadores'}`;
+
+  $('#admin-personas').innerHTML = ps.map((p) => {
+    const quien = p.es_entrenador
+      ? `Entrena a ${p.alumnos} · código ${escapar(p.codigo || '—')}`
+      : p.entrenadores ? `Lo entrena ${escapar(p.entrenadores)}` : 'Sin entrenador';
+    return `
+      <button class="tarjeta-alumno ${p.bloqueada ? 'persona-bloqueada' : ''}" data-persona="${p.id}">
+        <span class="inicial">${escapar((p.nombre || '?').charAt(0).toUpperCase())}</span>
+        <span class="alumno-info">
+          <h3>${escapar(p.nombre)} ${etiquetasPersona(p)}</h3>
+          <p>${escapar(p.email)}</p>
+          <p>${quien} · ${p.entrenamientos} ${p.entrenamientos === 1 ? 'entrenamiento' : 'entrenamientos'}${p.ultima ? ` · ${relativo(p.ultima).toLowerCase()}` : ''}</p>
+        </span>
+      </button>`;
+  }).join('');
+
+  $('#admin-personas').querySelectorAll('[data-persona]').forEach((b) => {
+    b.addEventListener('click', () => abrirPersonaAdmin(b.dataset.persona));
+  });
+}
+
+function abrirPersonaAdmin(id) {
+  const p = estado.admin.porId[id];
+  if (!p) return;
+  const soyYo = id === estado.usuario.id;
+  const entrenadores = estado.admin.personas.filter((x) => x.es_entrenador && x.id !== id);
+  const susEntrenadores = (p.entrenador_ids || []).map((e) => estado.admin.porId[e]).filter(Boolean);
+  const disponibles = entrenadores.filter((e) => !(p.entrenador_ids || []).includes(e.id));
+
+  $('#hoja-titulo').textContent = p.nombre;
+  $('#hoja-cuerpo').innerHTML = `
+    <p class="admin-dato">${escapar(p.email)}<br>
+      Cuenta creada el ${fechaLarga(p.creada)} · ${p.entrenamientos} ${p.entrenamientos === 1 ? 'entrenamiento' : 'entrenamientos'}</p>
+
+    <div class="menu-seccion"><h3>Entrenador</h3>
+      ${p.es_entrenador ? `
+        <div class="codigo-caja"><b>${escapar(p.codigo || '—')}</b>
+          <span>Su código. Entrena a ${p.alumnos} ${p.alumnos === 1 ? 'persona' : 'personas'}.</span></div>
+        <button class="menu-boton" data-accion="codigo">Generar un código nuevo
+          <small>el actual deja de valer</small></button>
+        <button class="menu-boton peligro" data-accion="quitar-entrenador">Quitarle el rol de entrenador</button>`
+      : `<button class="menu-boton" data-accion="hacer-entrenador">Hacer entrenador
+           <small>recibe su código</small></button>`}
+    </div>
+
+    <div class="menu-seccion"><h3>Quién lo entrena</h3>
+      ${susEntrenadores.length ? susEntrenadores.map((e) => `
+        <div class="fila-vinculo"><span>${escapar(e.nombre)}</span>
+          <button class="btn-menor" data-soltar="${e.id}">Soltar</button></div>`).join('')
+      : '<p class="admin-dato">Nadie por ahora.</p>'}
+      ${disponibles.length ? `
+        <div class="fila-codigo" style="margin-top:10px">
+          <select id="sel-entrenador" aria-label="Elegir entrenador">
+            ${disponibles.map((e) => `<option value="${e.id}">${escapar(e.nombre)}</option>`).join('')}
+          </select>
+          <button id="btn-ligar">Ligar</button>
+        </div>` : ''}
+    </div>
+
+    ${soyYo || p.es_admin ? '' : `
+      <div class="menu-seccion"><h3>Cuenta</h3>
+        ${p.bloqueada
+          ? '<button class="menu-boton" data-accion="desbloquear">Desbloquear la cuenta</button>'
+          : '<button class="menu-boton peligro" data-accion="bloquear">Bloquear la cuenta<small>no podrá entrar</small></button>'}
+      </div>`}`;
+  $('#hoja').classList.remove('oculto');
+
+  const cuerpo = $('#hoja-cuerpo');
+  const hecho = async (texto) => { $('#hoja').classList.add('oculto'); avisar(texto); await abrirAdmin(); };
+  const en = (sel, fn) => cuerpo.querySelector(sel)?.addEventListener('click', fn);
+
+  en('[data-accion="hacer-entrenador"]', async () => {
+    const r = await rpcAdmin('admin_hacer_entrenador', { p_usuario: id, p_si: true });
+    if (r.ok) hecho(`${p.nombre} ya es entrenador. Su código: ${r.data}`);
+  });
+  en('[data-accion="quitar-entrenador"]', async () => {
+    if (!confirm(`¿Quitarle el rol de entrenador a ${p.nombre}?\n\n` +
+      `Sus ${p.alumnos} alumnos quedarán sin entrenador y su código dejará de valer. ` +
+      'Las rutinas que ya les asignó se quedan en su catálogo.')) return;
+    const r = await rpcAdmin('admin_hacer_entrenador', { p_usuario: id, p_si: false });
+    if (r.ok) hecho(`${p.nombre} ya no es entrenador`);
+  });
+  en('[data-accion="codigo"]', async () => {
+    if (!confirm(`¿Generar otro código para ${p.nombre}?\n\nEl actual (${p.codigo}) dejará de servir para registrarse. Sus alumnos actuales no se ven afectados.`)) return;
+    const r = await rpcAdmin('admin_nuevo_codigo', { p_entrenador: id });
+    if (r.ok) hecho(`Código nuevo de ${p.nombre}: ${r.data}`);
+  });
+  en('#btn-ligar', async () => {
+    const e = $('#sel-entrenador').value;
+    const r = await rpcAdmin('admin_ligar', { p_entrenador: e, p_alumno: id });
+    if (r.ok) hecho(`Ahora a ${p.nombre} lo entrena ${estado.admin.porId[e]?.nombre}`);
+  });
+  cuerpo.querySelectorAll('[data-soltar]').forEach((b) => b.addEventListener('click', async () => {
+    const e = estado.admin.porId[b.dataset.soltar];
+    if (!confirm(`¿Soltar a ${p.nombre} de ${e?.nombre}?\n\n${e?.nombre} dejará de ver sus entrenamientos.`)) return;
+    const r = await rpcAdmin('admin_soltar', { p_entrenador: b.dataset.soltar, p_alumno: id });
+    if (r.ok) hecho('Vínculo quitado');
+  }));
+  en('[data-accion="bloquear"]', async () => {
+    if (!confirm(`¿Bloquear a ${p.nombre}?\n\nNo podrá entrar y se cerrarán sus sesiones abiertas. Sus datos no se borran; puedes desbloquearla después.`)) return;
+    const r = await rpcAdmin('admin_bloquear', { p_usuario: id, p_si: true });
+    if (r.ok) hecho(`${p.nombre} quedó bloqueada`);
+  });
+  en('[data-accion="desbloquear"]', async () => {
+    const r = await rpcAdmin('admin_bloquear', { p_usuario: id, p_si: false });
+    if (r.ok) hecho(`${p.nombre} puede volver a entrar`);
+  });
+}
+
+// ---------- Invitaciones ----------
+function pintarInvitaciones(lista) {
+  $('#admin-invitaciones').innerHTML = lista.length ? lista.map((v) => {
+    const estadoTxt = v.vigente
+      ? `${v.usos} ${v.usos === 1 ? 'uso' : 'usos'} · vence el ${fechaCorta(v.vence.slice(0, 10))}`
+      : v.usos === 0 ? 'agotada o anulada' : 'vencida';
+    return `
+      <div class="fila-invitacion ${v.vigente ? '' : 'apagada'}">
+        <span class="fe-info"><b class="codigo-invitacion">${escapar(v.codigo)}</b>
+          <small>${escapar(estadoTxt)}${v.nota ? ` · ${escapar(v.nota)}` : ''}</small></span>
+        ${v.vigente ? `<button class="btn-menor" data-compartir="${escapar(v.codigo)}">Compartir</button>
+                       <button class="btn-menor" data-anular="${escapar(v.codigo)}">Anular</button>` : ''}
+      </div>`;
+  }).join('') : '<p class="vacio" style="padding:16px">Todavía no hay invitaciones.</p>';
+
+  $('#admin-invitaciones').querySelectorAll('[data-compartir]').forEach((b) =>
+    b.addEventListener('click', () => compartirInvitacion(b.dataset.compartir)));
+  $('#admin-invitaciones').querySelectorAll('[data-anular]').forEach((b) =>
+    b.addEventListener('click', async () => {
+      if (!confirm(`¿Anular la invitación ${b.dataset.anular}? Ya no servirá para crear cuentas.`)) return;
+      const r = await rpcAdmin('admin_anular_invitacion', { p_codigo: b.dataset.anular });
+      if (r.ok) { avisar('Invitación anulada'); abrirAdmin(); }
+    }));
+}
+
+async function compartirInvitacion(codigo) {
+  const url = location.origin + location.pathname;
+  const texto = `Te invito a Rutina Gym. Entra a ${url}, toca "Crear cuenta" y usa el código ${codigo}.`;
+  try {
+    if (navigator.share) { await navigator.share({ text: texto }); return; }
+    await navigator.clipboard.writeText(texto);
+    avisar('Invitación copiada');
+  } catch (e) {
+    if (e?.name !== 'AbortError') avisar(`Código: ${codigo}`);
+  }
+}
+
+alPulsar('#btn-nueva-invitacion', () => {
+  $('#hoja-titulo').textContent = 'Nueva invitación';
+  $('#hoja-cuerpo').innerHTML = `
+    <form id="form-invitacion" class="menu-seccion">
+      <label class="campo"><span>¿Para quién es? <small>(opcional)</small></span>
+        <input id="in-inv-nota" maxlength="120" placeholder="Por ejemplo: Ana y su hermano"></label>
+      <div class="fila-dos">
+        <label class="campo"><span>Cuántas cuentas</span>
+          <input id="in-inv-usos" type="number" inputmode="numeric" min="1" max="50" value="1"></label>
+        <label class="campo"><span>Vale por (días)</span>
+          <input id="in-inv-dias" type="number" inputmode="numeric" min="1" max="365" value="30"></label>
+      </div>
+      <button class="btn-primario">Crear invitación</button>
+    </form>`;
+  $('#hoja').classList.remove('oculto');
+  $('#form-invitacion').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const r = await rpcAdmin('admin_crear_invitacion', {
+      p_usos: Number($('#in-inv-usos').value), p_dias: Number($('#in-inv-dias').value),
+      p_nota: $('#in-inv-nota').value,
+    });
+    if (!r.ok) return;
+    $('#hoja-titulo').textContent = 'Invitación lista';
+    $('#hoja-cuerpo').innerHTML = `
+      <div class="codigo-caja"><b>${escapar(r.data)}</b>
+        <span>Quien la use crea su cuenta sin entrenador.</span></div>
+      <button class="btn-primario" id="btn-compartir-nueva" style="margin-top:14px">Compartir</button>`;
+    $('#btn-compartir-nueva').addEventListener('click', () => compartirInvitacion(r.data));
+    abrirAdmin();
+  });
+});
+
+// ---------- Bitácora ----------
+function pintarBitacora(lista) {
+  const nombre = (id) => escapar(estado.admin.porId[id]?.nombre || 'alguien');
+  const texto = (b) => {
+    const d = b.detalle || {};
+    switch (b.accion) {
+      case 'hacer_entrenador': return `Hiciste entrenador a ${nombre(d.usuario)}`;
+      case 'quitar_entrenador': return `Le quitaste el rol de entrenador a ${nombre(d.usuario)}`;
+      case 'nuevo_codigo': return `Nuevo código para ${nombre(d.entrenador)}`;
+      case 'ligar': return `${nombre(d.entrenador)} ahora entrena a ${nombre(d.alumno)}`;
+      case 'soltar': return `Soltaste a ${nombre(d.alumno)} de ${nombre(d.entrenador)}`;
+      case 'bloquear': return `Bloqueaste a ${nombre(d.usuario)}`;
+      case 'desbloquear': return `Desbloqueaste a ${nombre(d.usuario)}`;
+      case 'crear_invitacion': return `Creaste la invitación ${escapar(d.codigo)} (${d.usos} ${d.usos === 1 ? 'uso' : 'usos'})`;
+      case 'anular_invitacion': return `Anulaste la invitación ${escapar(d.codigo)}`;
+      default: return escapar(b.accion);
+    }
+  };
+  $('#admin-bitacora').innerHTML = lista.length ? lista.map((b) => `
+    <div class="fila-bitacora"><span>${texto(b)}</span>
+      <small>${fechaCorta(b.at.slice(0, 10))}</small></div>`).join('')
+    : '<p class="vacio" style="padding:16px">Aquí aparecerá cada cambio que hagas.</p>';
+}
+
+alPulsar('#btn-volver-de-admin', cargarCatalogo);
 
 // ============================================================
 //  Constructor de rutinas

@@ -17,7 +17,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=202609210506">
+<link rel="stylesheet" href="css/styles.css?v=202609210533">
 </head>
 <body>
 
@@ -133,6 +133,29 @@
 
   <button id="btn-asignar-existente" class="btn-agregar">+ Asignar una rutina que ya tengo</button>
   <button id="btn-crear-para-alumno" class="btn-agregar">+ Armar una nueva para esta persona</button>
+</section>
+
+<!-- ============ ADMINISTRACIÓN ============ -->
+<section id="vista-admin" class="vista oculto">
+  <header class="cabecera">
+    <button id="btn-volver-de-admin" class="btn-icono" aria-label="Volver">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+    <div style="flex:1;min-width:0">
+      <p class="saludo">Administración</p>
+      <h1 id="admin-titulo">Personas</h1>
+    </div>
+  </header>
+
+  <div id="admin-personas" class="lista-rutinas"></div>
+
+  <h2 class="titulo-seccion" style="margin-top:30px">Invitaciones</h2>
+  <p class="nota-seccion">Para quien no entrena con nadie. Quien entrena con un entrenador se registra con el código de él.</p>
+  <button id="btn-nueva-invitacion" class="btn-agregar" style="margin:0 0 12px">+ Nueva invitación</button>
+  <div id="admin-invitaciones" class="lista-ej"></div>
+
+  <h2 class="titulo-seccion" style="margin-top:30px">Lo último que hiciste</h2>
+  <div id="admin-bitacora" class="lista-ej"></div>
 </section>
 
 <!-- ============ PROGRESO ============ -->
@@ -307,6 +330,6 @@
 </div>
 
 <script src="js/vendor/supabase-2.58.0.js"></script>
-<script type="module" src="js/app.js?v=202609210506"></script>
+<script type="module" src="js/app.js?v=202609210533"></script>
 </body>
 </html>

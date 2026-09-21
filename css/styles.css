@@ -869,3 +869,34 @@ input{font-family:inherit}
 }
 .notas-rutina p{margin:0;font-size:15px;line-height:1.55;white-space:pre-line;overflow-wrap:anywhere}
 .campo textarea::placeholder{color:var(--muted-2)}
+
+/* ============ ADMINISTRACIÓN ============ */
+.etiqueta{
+  display:inline-block;vertical-align:2px;margin-left:6px;padding:1px 7px;border-radius:20px;
+  font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;
+}
+.etiqueta.admin{background:var(--acento-suave);color:var(--acento)}
+.etiqueta.entrenador{background:var(--ok-suave);color:var(--ok)}
+.etiqueta.bloqueada{background:rgba(255,77,77,.14);color:var(--peligro)}
+.persona-bloqueada{opacity:.6}
+.tarjeta-alumno .alumno-info p + p{margin-top:1px}
+.tarjeta-alumno .alumno-info p{overflow-wrap:anywhere}
+.admin-dato{margin:0 0 16px;font-size:14px;color:var(--muted);line-height:1.55;overflow-wrap:anywhere}
+.fila-vinculo{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:10px 14px;border-radius:11px;background:var(--surface-2);margin-bottom:8px;font-weight:500;
+}
+.fila-codigo select{
+  flex:1;min-width:0;padding:12px 13px;border-radius:11px;font:inherit;font-size:15px;
+  background:var(--surface-2);color:var(--texto);border:1px solid var(--borde);
+}
+.fila-invitacion{display:flex;align-items:center;gap:8px;padding:12px 14px}
+.fila-invitacion + .fila-invitacion{border-top:1px solid var(--borde)}
+.fila-invitacion .fe-info{flex:1}
+.fila-invitacion.apagada{opacity:.5}
+.codigo-invitacion{font-family:"Barlow Condensed",Inter,sans-serif;font-size:19px;letter-spacing:.08em}
+.fila-bitacora{display:flex;justify-content:space-between;gap:12px;padding:11px 14px;font-size:14px}
+.fila-bitacora + .fila-bitacora{border-top:1px solid var(--borde)}
+.fila-bitacora small{color:var(--muted-2);white-space:nowrap}
+.fila-dos{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.fila-dos .campo input{width:100%}

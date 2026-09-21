@@ -166,6 +166,7 @@ alumnos, y de nadie más; no puede modificar nada de ellos.
 - **Todo texto que escribe una persona** (nombres, notas) pasa por `escapar()` antes de ir al HTML.
 - **Catálogo**: sólo se pueden poner en él rutinas del sistema o propias (`privado.rutina_asignable`); el entrenador, sólo las suyas a sus alumnos. De un catálogo sólo se cambia `activa`.
 - **Registro sólo por invitación** (`supabase/2026-09-19_invitaciones.sql`): crear cuenta pide el código de un entrenador (queda como su alumno) o una invitación de `privado.invitaciones`. Un trigger en `auth.users` rechaza el alta sin código válido. Para una invitación nueva, en el SQL de Supabase: `select privado.nueva_invitacion(usos, dias, 'nota');`. Ojo: por lo mismo, "Add user" desde el panel de Supabase también será rechazado.
+- **Administración** (`supabase/2026-09-21_admin.sql`): `profiles.es_admin` (sólo se cambia desde SQL). Menú → Administración: ver personas con su correo, hacer o quitar entrenador, código nuevo, ligar y soltar alumnos, bloquear cuentas (`auth.users.banned_until`, cierra sus sesiones), invitaciones y una bitácora. Cada función `admin_*` comprueba primero que quien llama sea admin.
 - **Auditoría del 19 sep 2026**: `supabase/2026-09-19_auditoria.sql`, con lo que se cerró y por qué.
 
 ## Despliegue
