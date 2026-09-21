@@ -17,7 +17,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=202609210543">
+<link rel="stylesheet" href="css/styles.css?v=202609210602">
 </head>
 <body>
 
@@ -127,6 +127,8 @@
     <span id="alumno-mapa" class="tp-mapa"></span>
     <span class="tp-flecha"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
   </button>
+
+  <div id="alumno-comentarios"></div>
 
   <h2 class="titulo-seccion">Sus rutinas</h2>
   <div id="alumno-rutinas" class="lista-rutinas"></div>
@@ -278,6 +280,14 @@
     <button id="btn-cardio" class="check-grande" aria-pressed="false" aria-label="Marcar cardio como hecho"></button>
   </div>
 
+  <!-- Comentario del día; si tienes entrenador, él lo lee -->
+  <div class="comentario-caja">
+    <label for="in-comentario"><b>¿Cómo te fue?</b> <span id="comentario-quien">Sólo tú lo ves</span></label>
+    <textarea id="in-comentario" rows="3" maxlength="1000"
+      placeholder="Por ejemplo: me molestó el hombro en el press; la prensa me quedó ligera."></textarea>
+    <p id="comentario-estado" class="comentario-estado" aria-live="polite"></p>
+  </div>
+
   <!-- Sesión ya cerrada -->
   <div id="ya-finalizada" class="finalizada oculto">
     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6L9 17l-5-5" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -334,6 +344,6 @@
 </div>
 
 <script src="js/vendor/supabase-2.58.0.js"></script>
-<script type="module" src="js/app.js?v=202609210543"></script>
+<script type="module" src="js/app.js?v=202609210602"></script>
 </body>
 </html>

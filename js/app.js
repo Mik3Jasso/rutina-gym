@@ -1,7 +1,9 @@
 // supabase-js vive copiado en js/vendor (sacado del registro de npm):
 // así la app no depende de que un CDN ajeno sirva código honesto.
 const { createClient } = window.supabase;
-import { DIBUJOS, urlVideo } from './rutina.js?v=202609210543';
+import { DIBUJOS, urlVideo } from './rutina.js?v=202609210602';
+import { hoy, escapar, sinAcentos, isoDe, lunesDe, semanasSeguidas, formatoKilos,
+         puntosPorEjercicio, revisarPeso } from './util.js?v=202609210602';
 
 // ------------------------------------------------------------
 //  Conexión. Esta llave es pública por diseño: lo que protege
@@ -82,10 +84,6 @@ const estado = {
 // ============================================================
 //  Utilidades
 // ============================================================
-const hoy = () => {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-};
 
 const fechaCorta = (iso) => {
   if (!iso) return '';
@@ -117,9 +115,6 @@ const fechaLarga = (iso) => {
   return `${d} de ${meses[m - 1]} de ${a}`;
 };
 
-// Para meter en el HTML texto que escribió una persona
-const escapar = (t) => String(t ?? '').replace(/[&<>"']/g, (c) =>
-  ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 
 const nDecimal = (v) => (v === null || v === undefined || v === '' ? '' : String(Number(v)));
 
@@ -536,6 +531,7 @@ async function abrirAlumno(alumnoId) {
   $('#alumno-resumen').textContent = 'Entrenas a';
   $('#alumno-rutinas').innerHTML = '<p class="vacio">Cargando…</p>';
   $('#alumno-mapa').innerHTML = '';
+  $('#alumno-comentarios').innerHTML = '';
 
   const { data: suyas } = await sb.from('rutinas_usuario')
     .select('rutina_id, activa').eq('user_id', alumnoId);
@@ -549,6 +545,7 @@ async function abrirAlumno(alumnoId) {
   const { data: ses } = await sb.from('sesiones')
     .select('fecha').eq('user_id', alumnoId);
   $('#alumno-mapa').innerHTML = mapaMini((ses || []).map((x) => x.fecha));
+  pintarComentariosAlumno(alumnoId, porId);
   const n = (ses || []).length;
   const ultima = (ses || []).map((x) => x.fecha).sort().pop();
   $('#alumno-resumen').textContent =
@@ -569,6 +566,26 @@ async function abrirAlumno(alumnoId) {
           </div>`;
       }).join('')
     : '<p class="vacio-biblioteca">Todavía no tiene ninguna rutina asignada.</p>';
+}
+
+// Lo que el alumno escribió en sus últimos entrenamientos
+async function pintarComentariosAlumno(alumnoId, rutinasPorId) {
+  const caja = $('#alumno-comentarios');
+  caja.innerHTML = '';
+  const { data } = await sb.from('sesiones')
+    .select('fecha, dia, rutina_id, notas')
+    .eq('user_id', alumnoId).not('notas', 'is', null)
+    .order('fecha', { ascending: false }).limit(5);
+  if (estado.alumnoAbierto !== alumnoId || !data?.length) return;
+  caja.innerHTML = `
+    <h2 class="titulo-seccion">Lo que te ha dicho</h2>
+    <div class="lista-comentarios">
+      ${data.map((c) => `
+        <div class="comentario">
+          <small>${fechaCorta(c.fecha)} · día ${c.dia}${rutinasPorId[c.rutina_id] ? ` de ${escapar(rutinasPorId[c.rutina_id].nombre)}` : ''}</small>
+          <p>${escapar(c.notas)}</p>
+        </div>`).join('')}
+    </div>`;
 }
 
 alPulsar('#btn-volver-de-alumno', abrirAlumnos);
@@ -627,16 +644,7 @@ async function todasLasFilas(consulta) {
   }
 }
 
-const isoDe = (d) =>
-  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
-// Lunes de la semana de una fecha
-function lunesDe(iso) {
-  const [a, m, d] = iso.split('-').map(Number);
-  const f = new Date(a, m - 1, d);
-  f.setDate(f.getDate() - ((f.getDay() + 6) % 7));
-  return isoDe(f);
-}
 
 // Mapa de constancia: una columna por semana (de lunes a domingo),
 // la última es la actual. `nivel` va de fecha a 0, 1 o 2.
@@ -661,46 +669,8 @@ function mapaConstancia(nivel, { semanas = 12, celda = 9, hueco = 3, etiqueta = 
     aria-label="${etiqueta || `Días entrenados en las últimas ${semanas} semanas`}">${cuadros}</svg>`;
 }
 
-// Semanas seguidas con al menos un entrenamiento. La semana en curso
-// no rompe la racha si todavía no se ha entrenado en ella.
-function semanasSeguidas(fechas) {
-  const conEntreno = new Set(fechas.map(lunesDe));
-  const lunes = new Date(lunesDe(hoy()).replace(/-/g, '/'));
-  if (!conEntreno.has(isoDe(lunes))) lunes.setDate(lunes.getDate() - 7);
-  let n = 0;
-  while (conEntreno.has(isoDe(lunes))) { n++; lunes.setDate(lunes.getDate() - 7); }
-  return n;
-}
 
-const formatoKilos = (kg) =>
-  kg >= 1000 ? `${(kg / 1000).toLocaleString('es-MX', { maximumFractionDigits: 1 })} t`
-             : `${Math.round(kg)} kg`;
 
-// Por ejercicio, la serie más pesada de cada fecha. Si nunca lleva
-// peso (abdominales, dominadas sin lastre) se sigue por repeticiones.
-function puntosPorEjercicio(series, fechaDeSesion) {
-  const porEj = {};
-  series.forEach((s) => {
-    if (!s.hecho) return;
-    const fecha = fechaDeSesion[s.sesion_id];
-    if (!fecha) return;
-    ((porEj[s.ejercicio_slug] ||= {})[fecha] ||= []).push(s);
-  });
-
-  return Object.entries(porEj).map(([slug, porFecha]) => {
-    const todas = Object.values(porFecha).flat();
-    const conPeso = todas.some((s) => Number(s.peso) > 0);
-    const puntos = Object.keys(porFecha).sort().map((fecha) => {
-      const mejor = porFecha[fecha].reduce((a, b) => {
-        const va = conPeso ? Number(a.peso) || 0 : a.reps || 0;
-        const vb = conPeso ? Number(b.peso) || 0 : b.reps || 0;
-        return vb > va || (vb === va && (b.reps || 0) > (a.reps || 0)) ? b : a;
-      });
-      return { fecha, valor: conPeso ? Number(mejor.peso) || 0 : mejor.reps || 0, reps: mejor.reps, series: porFecha[fecha] };
-    });
-    return { slug, unidad: conPeso ? 'kg' : 'reps', puntos };
-  });
-}
 
 function chispa(valores) {
   const W = 84, H = 26;
@@ -1005,8 +975,6 @@ function etiquetasPersona(p) {
   return e.join('');
 }
 
-// Sin acentos ni mayúsculas: "jessica" encuentra a "Jéssica"
-const sinAcentos = (t) => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 
 function pintarPersonasAdmin() {
   const ps = estado.admin.personas;
@@ -1250,7 +1218,7 @@ async function editarRutina(rutinaId) {
     dias: def.dias.map((d) => ({
       nombre: d.nombre,
       ejercicios: d.bloques.flatMap((bloque, bi) =>
-        bloque.map((e, ei) => ({ id: e.id, series: [...e.series], juntoAlAnterior: ei > 0 }))),
+        bloque.map((e, ei) => ({ id: e.id, series: [...e.series], nota: e.nota || '', juntoAlAnterior: ei > 0 }))),
     })),
     asignar: new Set((asignada || []).map((a) => a.user_id)),
   };
@@ -1324,6 +1292,9 @@ function tarjetaEjercicioEditor(di, ei, e) {
         <button data-menos-serie="${di}.${ei}" aria-label="Quitar una serie">−</button>
         <button data-mas-serie="${di}.${ei}" aria-label="Agregar una serie">+</button>
       </div>
+      <input class="nota-ejercicio-editor" data-nota-ej="${di}.${ei}" maxlength="300"
+             value="${escapar(e.nota)}" placeholder="Nota para este ejercicio (opcional)"
+             aria-label="Nota para ${escapar(ej?.nombre || e.id)}">
       ${ei > 0 ? `
         <label class="enlace-superserie">
           <input type="checkbox" data-enlazar="${di}.${ei}" ${e.juntoAlAnterior ? 'checked' : ''}>
@@ -1371,6 +1342,12 @@ $('#editor-dias')?.addEventListener('input', (e) => {
   const ed = estado.editor; if (!ed) return;
   const nombreDia = e.target.getAttribute('data-nombre-dia');
   if (nombreDia !== null) { ed.dias[Number(nombreDia)].nombre = e.target.value; return; }
+  const notaEj = e.target.getAttribute('data-nota-ej');
+  if (notaEj !== null) {
+    const [di, ei] = notaEj.split('.').map(Number);
+    ed.dias[di].ejercicios[ei].nota = e.target.value;
+    return;
+  }
   const reps = e.target.getAttribute('data-reps');
   if (reps !== null) {
     const [di, ei, si] = reps.split('.').map(Number);
@@ -1452,7 +1429,7 @@ function abrirBuscador(di) {
   $('#resultados').addEventListener('click', (e) => {
     const id = e.target.closest('[data-elegir]')?.getAttribute('data-elegir');
     if (!id) return;
-    estado.editor.dias[di].ejercicios.push({ id, series: [15, 12, 10, 8], juntoAlAnterior: false });
+    estado.editor.dias[di].ejercicios.push({ id, series: [15, 12, 10, 8], nota: '', juntoAlAnterior: false });
     $('#hoja').classList.add('oculto');
     pintarEditor();
   });
@@ -1510,6 +1487,7 @@ async function guardarRutina() {
         return {
           dia_id: dia.id, bloque, orden: enBloque[bloque],
           ejercicio_id: e.id, series: e.series,
+          nota: (e.nota || '').trim() || null,
         };
       });
 
@@ -1593,7 +1571,7 @@ async function cargarDefinicionRutina(rutinaId) {
 
   const { data: dias, error: e2 } = await sb
     .from('rutina_dias')
-    .select('id, dia, nombre, tono, rutina_ejercicios(bloque, orden, ejercicio_id, series)')
+    .select('id, dia, nombre, tono, rutina_ejercicios(bloque, orden, ejercicio_id, series, nota)')
     .eq('rutina_id', rutinaId)
     .order('dia');
   if (e2) return null;
@@ -1606,6 +1584,7 @@ async function cargarDefinicionRutina(rutinaId) {
         (porBloque[re.bloque] ||= []).push({
           id: re.ejercicio_id,
           series: re.series?.length ? re.series : [15, 12, 10, 8],
+          nota: re.nota || '',
         });
       });
     return {
@@ -1817,8 +1796,41 @@ function limpiarPantalla() {
   estado.cardio = false;
   estado.finalizada = null;
   estado.inicioSesion = null;
+  clearTimeout(comentarioTimer);
+  $('#in-comentario').value = '';
+  $('#comentario-estado').textContent = '';
+  $('#comentario-quien').textContent = estado.entrenador
+    ? `Lo lee ${estado.entrenador.nombre}` : 'Sólo tú lo ves';
   pintarBloques();
 }
+
+// ---------- Comentario del día ----------
+// Se guarda solo, un momento después de dejar de escribir. Un comentario
+// vacío no crea el entrenamiento; uno escrito sí, para tener dónde guardarlo.
+let comentarioTimer = null;
+async function guardarComentario() {
+  clearTimeout(comentarioTimer);
+  const texto = $('#in-comentario').value.trim();
+  const aviso = $('#comentario-estado');
+  if (!texto && !estado.sesionId) { aviso.textContent = ''; return; }
+  aviso.textContent = 'Guardando…';
+  try {
+    const id = await asegurarSesion();
+    const { error } = await sb.from('sesiones').update({ notas: texto || null })
+      .eq('id', id).eq('user_id', estado.usuario.id);
+    if (error) throw error;
+    aviso.textContent = texto ? 'Guardado' : '';
+    $('#btn-borrar-sesion').classList.remove('oculto');
+  } catch {
+    aviso.textContent = 'No se pudo guardar. Se intentará de nuevo al salir del campo.';
+  }
+}
+alPulsar('#in-comentario', () => {
+  clearTimeout(comentarioTimer);
+  $('#comentario-estado').textContent = '';
+  comentarioTimer = setTimeout(guardarComentario, 1200);
+}, 'input');
+alPulsar('#in-comentario', guardarComentario, 'change');
 
 // Fechas en las que ya entrenaste este día, para poder volver y corregir.
 async function cargarFechas() {
@@ -1856,7 +1868,7 @@ async function cargarSesion() {
   const slugs = ejerciciosDelDia().map((e) => e.id);
   const { data: ses } = await sb
     .from('sesiones')
-    .select('id, cardio_hecho, finalizada_at, created_at')
+    .select('id, cardio_hecho, finalizada_at, created_at, notas')
     .eq('user_id', estado.usuario.id)
     .eq('rutina_id', estado.rutina.id)
     .eq('dia', estado.dia.dia).eq('fecha', estado.fecha)
@@ -1867,6 +1879,7 @@ async function cargarSesion() {
     estado.cardio = ses.cardio_hecho;
     estado.finalizada = ses.finalizada_at;
     estado.inicioSesion = ses.created_at;
+    $('#in-comentario').value = ses.notas || '';
     const { data: logs } = await sb
       .from('series_log')
       .select('ejercicio_slug, serie, peso, reps, hecho')
@@ -2011,6 +2024,7 @@ function tarjetaEjercicio(item) {
         <span class="ej-txt">
           <h4>${escapar(ej.nombre)}</h4>
           <p class="ej-musculo">${escapar(ej.musculo)}</p>
+          ${item.nota ? `<p class="ej-nota">${escapar(item.nota)}</p>` : ''}
         </span>
         <span class="ej-estado">
           <span class="pastilla ${completo ? 'completo' : ''}">${hechas}/${series.length}</span>
@@ -2165,28 +2179,20 @@ function marcarGuardada(clave) {
   tr.querySelector('.check').setAttribute('aria-pressed', 'true');
 }
 
-// La palomita es el boton de guardar: toma el peso y las reps de su
-// fila, los sube, y solo entonces se pone verde.
 // Un dedo de más convierte 38 kg en 388 y descompone el progreso.
 // Si el peso es mucho mayor que lo más pesado que se conoce de este
 // ejercicio (la vez pasada o las otras series de hoy), se pregunta.
 function pesoCreible(slug, serie, peso) {
   if (!(peso > 0)) return true;
-  // De hoy cuentan las otras series; la que se está marcando no.
-  const hoyOtras = Object.entries(estado.registros).filter(([c]) => c !== `${slug}:${serie}`);
-  const conocidos = [...Object.entries(estado.anteriores), ...hoyOtras]
-    .filter(([clave]) => clave.startsWith(slug + ':'))
-    .map(([, r]) => Number(r.peso) || 0);
-  const referencia = Math.max(0, ...conocidos);
-  const exagerado = referencia > 0
-    ? peso >= referencia * 2 && peso - referencia >= 20
-    : peso > 300;
+  const { exagerado, referencia } = revisarPeso(peso, slug, serie, estado.anteriores, estado.registros);
   if (!exagerado) return true;
   return confirm(referencia > 0
     ? `¿${nDecimal(peso)} kg? Lo más pesado que tienes en este ejercicio es ${nDecimal(referencia)} kg.\n\nAcepta si es correcto, o cancela para corregirlo.`
     : `¿${nDecimal(peso)} kg? Es mucho peso.\n\nAcepta si es correcto, o cancela para corregirlo.`);
 }
 
+// La palomita es el boton de guardar: toma el peso y las reps de su
+// fila, los sube, y solo entonces se pone verde.
 async function guardarSerie(slug, serie, btn) {
   if (btn.classList.contains('guardando')) return;
 
@@ -2323,6 +2329,7 @@ async function guardarTodasPendientes() {
 }
 
 async function finalizarRutina() {
+  if (comentarioTimer) await guardarComentario();
   const btn = $('#btn-finalizar');
   const pend = seriesPendientes().length;
 

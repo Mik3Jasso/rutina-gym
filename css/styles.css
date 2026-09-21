@@ -900,3 +900,34 @@ input{font-family:inherit}
 .fila-bitacora small{color:var(--muted-2);white-space:nowrap}
 .fila-dos{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .fila-dos .campo input{width:100%}
+
+/* ============ NOTAS POR EJERCICIO Y COMENTARIOS ============ */
+.nota-ejercicio-editor{
+  width:100%;margin-top:10px;padding:10px 12px;border-radius:10px;font:inherit;font-size:14px;
+  background:var(--surface-2);color:var(--texto);border:1px solid var(--borde);outline:none;
+}
+.nota-ejercicio-editor:focus{border-color:var(--acento)}
+.nota-ejercicio-editor::placeholder{color:var(--muted-2)}
+.ej-nota{
+  margin:4px 0 0;font-size:13px;line-height:1.4;color:var(--acento);
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
+}
+.ejercicio.abierto .ej-nota{-webkit-line-clamp:unset}
+.comentario-caja{
+  background:var(--surface);border:1px solid var(--borde);border-radius:var(--radio);
+  padding:15px 16px;margin:14px 0;
+}
+.comentario-caja label{display:flex;justify-content:space-between;gap:10px;margin-bottom:9px;font-size:15px}
+.comentario-caja label span{font-size:12.5px;color:var(--muted)}
+.comentario-caja textarea{
+  width:100%;resize:vertical;min-height:70px;padding:11px 12px;border-radius:11px;
+  background:var(--surface-2);border:1px solid var(--borde);color:var(--texto);
+  font:inherit;font-size:15px;line-height:1.45;outline:none;
+}
+.comentario-caja textarea:focus{border-color:var(--acento)}
+.comentario-caja textarea::placeholder{color:var(--muted-2)}
+.comentario-estado{margin:6px 0 0;min-height:18px;font-size:12.5px;color:var(--muted)}
+.lista-comentarios{display:flex;flex-direction:column;gap:8px;margin-bottom:26px}
+.comentario{background:var(--surface);border:1px solid var(--borde);border-radius:14px;padding:12px 14px}
+.comentario small{color:var(--muted);font-size:12px}
+.comentario p{margin:4px 0 0;font-size:15px;line-height:1.5;white-space:pre-line;overflow-wrap:anywhere}

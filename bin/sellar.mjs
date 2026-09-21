@@ -22,6 +22,7 @@ fs.writeFileSync('index.html', html);
 
 let app = fs.readFileSync('js/app.js', 'utf8');
 app = sello(app, /from '\.\/rutina\.js(\?v=[^']*)?'/, `from './rutina.js?v=${version}'`);
+app = sello(app, /from '\.\/util\.js(\?v=[^']*)?'/, `from './util.js?v=${version}'`);
 fs.writeFileSync('js/app.js', app);
 
 console.log('sellado con la versión', version);

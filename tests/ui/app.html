@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prueba de pantalla</title>
+<link rel="stylesheet" href="../../css/styles.css">
+</head>
+<body>
+<script type="module">
+// Carga la app de verdad (index.html + js/app.js) sobre la base simulada
+// y corre una suite de escenarios. ?suite=alumno|entrenador|admin
+import { crearBase } from './base-simulada.js';
+import { DATOS, RPC } from './datos.js';
+import { SUITES } from './escenarios.js';
+
+const suite = new URLSearchParams(location.search).get('suite') || 'alumno';
+const { yo, escenarios } = SUITES[suite];
+
+// El cuerpo de la app, sin sus scripts
+const html = await fetch('../../index.html', { cache: 'no-store' }).then((r) => r.text());
+const doc = new DOMParser().parseFromString(html, 'text/html');
+doc.querySelectorAll('script').forEach((s) => s.remove());
+document.body.innerHTML = doc.body.innerHTML;
+
+// Cada suite empieza como si fuera la primera vez que se abre la app
+try { sessionStorage.clear(); localStorage.clear(); } catch {}
+history.replaceState(null, '', location.pathname + location.search);
+
+const base = crearBase(DATOS, { yo, rpc: RPC });
+window.supabase = { createClient: () => base.cliente };
+window.__base = base;
+
+// confirm() y alert() los contesta cada escenario
+window.__respuestaConfirm = true;
+window.confirm = () => window.__respuestaConfirm;
+window.alert = () => {};
+
+// Un error que nadie atrapa es una falla aunque la pantalla se vea bien
+const sinAtrapar = [];
+addEventListener('error', (e) => sinAtrapar.push(e.message));
+addEventListener('unhandledrejection', (e) => sinAtrapar.push(String(e.reason?.message || e.reason)));
+
+await import(`../../js/app.js?prueba=${Date.now()}`);
+
+const resultados = [];
+for (const [nombre, fn] of escenarios) {
+  try {
+    window.__respuestaConfirm = true;
+    await fn(base);
+    resultados.push({ suite, nombre, ok: true });
+  } catch (e) {
+    resultados.push({ suite, nombre, ok: false, error: String(e?.message || e) });
+  }
+}
+if (window.__xss) resultados.push({ suite, nombre: 'ningún texto de usuario se ejecutó como código', ok: false, error: 'se ejecutó HTML inyectado' });
+else resultados.push({ suite, nombre: 'ningún texto de usuario se ejecutó como código', ok: true });
+
+resultados.push(sinAtrapar.length
+  ? { suite, nombre: 'la app no tuvo errores sin atrapar', ok: false, error: sinAtrapar.join(' | ') }
+  : { suite, nombre: 'la app no tuvo errores sin atrapar', ok: true });
+
+window.__resultados = resultados;
+parent.postMessage({ tipo: 'resultados', suite, resultados }, '*');
+</script>
+</body>
+</html>

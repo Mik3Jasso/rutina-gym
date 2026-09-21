@@ -166,8 +166,23 @@ alumnos, y de nadie más; no puede modificar nada de ellos.
 - **Todo texto que escribe una persona** (nombres, notas) pasa por `escapar()` antes de ir al HTML.
 - **Catálogo**: sólo se pueden poner en él rutinas del sistema o propias (`privado.rutina_asignable`); el entrenador, sólo las suyas a sus alumnos. De un catálogo sólo se cambia `activa`.
 - **Registro sólo por invitación** (`supabase/2026-09-19_invitaciones.sql`): crear cuenta pide el código de un entrenador (queda como su alumno) o una invitación de `privado.invitaciones`. Un trigger en `auth.users` rechaza el alta sin código válido. Para una invitación nueva, en el SQL de Supabase: `select privado.nueva_invitacion(usos, dias, 'nota');`. Ojo: por lo mismo, "Add user" desde el panel de Supabase también será rechazado.
+- **Notas**: el entrenador escribe notas por rutina (`rutinas.notas`) y por ejercicio (`rutina_ejercicios.nota`); el alumno deja un comentario por entrenamiento (`sesiones.notas`), que su entrenador lee en la ficha.
 - **Administración** (`supabase/2026-09-21_admin.sql`): `profiles.es_admin` (sólo se cambia desde SQL). Menú → Administración: ver personas con su correo, hacer o quitar entrenador, código nuevo, ligar y soltar alumnos, bloquear cuentas (`auth.users.banned_until`, cierra sus sesiones), invitaciones y una bitácora. Cada función `admin_*` comprueba primero que quien llama sea admin.
 - **Auditoría del 19 sep 2026**: `supabase/2026-09-19_auditoria.sql`, con lo que se cerró y por qué.
+
+## Pruebas
+
+```bash
+node bin/probar.mjs
+```
+
+Son tres, y ninguna toca datos reales:
+
+- **Lógica** (`tests/*.test.mjs`, con `node --test`, sin instalar nada): las funciones puras de `js/util.js` — escapar texto, el aviso de peso absurdo, el cálculo de progreso y de semanas seguidas.
+- **Pantallas** (`tests/ui/`): carga la app real sobre una base simulada en memoria con datos inventados (que traen HTML a propósito) y la maneja como una persona: alumno, entrenador y admin. Con el servidor local, abrir `http://localhost:8000/tests/ui/`.
+- **Permisos de la base** (`tests/base.sql`): se hace pasar por Mike, Jessica y Jerry, intenta ataques y usos normales, y al final hace `rollback`. Pegar entero en el SQL Editor de Supabase; cada fila dice `ok` o `FALLA`.
+
+Antes de publicar un cambio, correr las tres.
 
 ## Despliegue
 
